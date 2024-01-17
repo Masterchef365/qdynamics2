@@ -1,0 +1,80 @@
+\documentclass[12pt]{article}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage{graphicx}
+\usepackage{physics}
+\newcommand{\Lagr}{\mathcal{L}}
+\newcommand{\pderiv}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\vv}[2]{\vec{#1}_\text{#2}}
+\newcommand{\powt}[2]{#1 \times 10^{#2}}
+\newcommand{\eigbasis}[0]{[\Phi_j]}
+
+\title{QDynamics internal documentation}
+\author{Duncan M. Freeman}
+
+\begin{document}
+\maketitle
+DISCLAIMER: THIS IS A WORK IN PROGRESS PROJECT AND MAKES NO CLAIM OF SCIENTIFIC VALUE OR ACCURACY OF ANY KIND. DO NOT RELY ON THIS WORK!
+
+With that out of the way, welcome!
+
+This is documentation for my own purposes, to remember how this all fits together.
+
+This project is a basic mockup of the Fewest Switches Surface Hopping
+Method, and follows:
+
+Pedagogical Overview of the Fewest Switches Surface Hopping Method
+Amber Jain and Aarti Sindhu
+ACS Omega 2022 7 (50), 45810-45824
+DOI: 10.1021/acsomega.2c04843
+
+(todo: actual citation lol)
+\clearpage
+
+\subsection{Overview}
+The algorithm works like this:
+
+1. Initialize runtime parameters:
+\begin{itemize}
+    \item $(R, P)$: These are the position and momentum vectors of the atomic nuclei. They are modelled clasically. In code, they are called position and velocity, the mass being assumed constant for all nuclei.
+    \item $\lambda$: The current electronic state we are allowing the nuclei to observe. The corresponding energy eigenstate will be denoted $\Phi_\lambda$.
+    \item $c_j$: The current electronic wavefunction parameters. It can also be represented as a vector $\vec{c}$. Note that $\psi(t)$ is a linear combination of energy eigenstates based on these coefficients: 
+        \[ \psi = \eigbasis \vec{c} \]
+
+        Or for you plain folk:
+        \[ \ket{\psi} = \sum_j c_j \ket{\Phi_j} \]
+
+        This may be obtained by a delta function in energy space (setting an element of $c_j$ to one), or by obtaining eigenvectors and solving for the coefficients given a desired wavefunction input ($\eigbasis^{-1} \psi_0 = \vec{c}$ ).
+\end{itemize}
+
+(Main loop begins here)
+
+2. Calculate new quantum state
+\begin{itemize}
+    \item Recalculate energy eigenbasis; $H\Phi_j = E_j\Phi_j$.
+
+        Use an SVD algorithm to get $\Phi_j$ from $H$ (eigenbasis in matrix representation hereby represented as $\eigbasis$).
+    \item Advance the state in time a small amount
+\end{itemize}
+
+3. Integrate classical motion
+\begin{itemize}
+    \item Calculate the force on the protons due to electric field and other protons.
+
+    \item Integrate proton motion by a small time step.
+    \item Repeat.
+\end{itemize}
+
+4. Display to user
+
+5. Goto 2
+
+\subsection{Basis}
+
+
+\end{document}
+
