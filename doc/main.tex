@@ -43,31 +43,35 @@ The algorithm works like this:
     \item $(R, P)$: These are the position and momentum vectors of the atomic nuclei. They are modelled clasically. In code, they are called position and velocity, the mass being assumed constant for all nuclei.
     \item $\lambda$: The current electronic state we are allowing the nuclei to observe. The corresponding energy eigenstate will be denoted $\Phi_\lambda$.
     \item $c_j$: The current electronic wavefunction parameters. It can also be represented as a vector $\vec{c}$. Note that $\psi(t)$ is a linear combination of energy eigenstates based on these coefficients: 
-        \[ \psi = \eigbasis \vec{c} \]
+        \[ \psi(t=0) = \eigbasis \vec{c} \]
 
-        Or for you plain folk:
-        \[ \ket{\psi} = \sum_j c_j \ket{\Phi_j} \]
+        Or, in another notation, parameterized by time:
+        \[ \ket{\psi(t)} = \sum_j e^{-iE_jt/\hbar} c_j \ket{\Phi_j} \]
 
         This may be obtained by a delta function in energy space (setting an element of $c_j$ to one), or by obtaining eigenvectors and solving for the coefficients given a desired wavefunction input ($\eigbasis^{-1} \psi_0 = \vec{c}$ ).
 \end{itemize}
 
 (Main loop begins here)
 
-2. Calculate new quantum state
+2. Calculate new energy eigenbasis
 \begin{itemize}
     \item Recalculate energy eigenbasis; $H\Phi_j = E_j\Phi_j$.
 
         Use an SVD algorithm to get $\Phi_j$ from $H$ (eigenbasis in matrix representation hereby represented as $\eigbasis$).
-    \item Advance the state in time a small amount
+
+        Note that if $\bra{\Phi_j(t - \Delta T)}\ket{\Phi_j(t)} < 0$, we should set $\ket{\Phi_j(t)} = -\ket{\Phi_j(t)}$.
 \end{itemize}
 
-3. Integrate classical motion
+3. Integrate classical motion using quantum-derived forces
 \begin{itemize}
-    \item Calculate the force on the protons due to electric field and other protons.
+    \item Calculate the force on the protons due to (single component $\lambda$ of) the electron cloud and proton-proton interaction.
+        \[ m\ddot{R} = F = -\bra{\Phi_\lambda}\nabla_R H\ket{\Phi_\lambda} \]
 
     \item Integrate proton motion by a small time step.
-    \item Repeat.
 \end{itemize}
+
+4. Integrate quantum equations of motion
+(????)
 
 4. Display to user
 
