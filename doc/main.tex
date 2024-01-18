@@ -57,6 +57,8 @@ The algorithm works like this:
 \begin{itemize}
     \item Recalculate energy eigenbasis; $H\Phi_j = E_j\Phi_j$.
 
+        Make sure to solve the old one for calculations futher down the line!
+
         Use an SVD algorithm to get $\Phi_j$ from $H$ (eigenbasis in matrix representation hereby represented as $\eigbasis$).
 
         Note that if $\bra{\Phi_j(t - \Delta T)}\ket{\Phi_j(t)} < 0$, we should set $\ket{\Phi_j(t)} = -\ket{\Phi_j(t)}$.
@@ -70,10 +72,26 @@ The algorithm works like this:
     \item Integrate proton motion by a small time step.
 \end{itemize}
 
+\clearpage
 4. Integrate quantum equations of motion
-(????)
+\[ V_{kj} = \bra{\Phi_k}H\ket{\Phi_j} \]
+\[ U_{kj} = \bra{\Phi_k(t_0)}H\ket{\Phi_j(t_0 + dt_c)} \]
+\[ T_{kj} = \frac{1}{dt_c}\log(U) \]
+\[ \dot{c}_j = -\frac{i}{\hbar} \sum_j (V_{kj} - i\hbar T_{kj})c_j \]
 
-4. Display to user
+5. Calculate potential surface hopping probability
+\[ P(\lambda\to k) = \frac{2\Re(T_{\lambda k} c_\lambda^* c_k)}{|c_\lambda|^2} \]
+
+Call a random number $r$ between 0 and 1. If $\sum_{l=1}^{k-1} P(\lambda\to k) < r < \sum_{l=1}^k P(\lambda\to k)$, then we will hop to this new state $k$.  
+
+6. Handling a hop
+
+Calculate the derivative coupling vector:
+
+
+Determine the coefficient $\gamma$ to conserve total energy.
+
+5. Display to user
 
 5. Goto 2
 
