@@ -1,5 +1,2 @@
-doc/*.aux
-doc/*.fdb_latexmk
-doc/*.fls
-doc/*.log
-doc/*.synctex.gz
+/target
+/dist
