@@ -35,8 +35,13 @@ DOI: 10.1021/acsomega.2c04843
 (todo: actual citation lol)
 \clearpage
 
-\subsection{Overview}
-The algorithm works like this:
+\section{Overview}
+The simulation consists of a number of classically-modelled atomic nuclei, which are orbited by a cloud of electrons. The atomic nuclei are assumed to only respond to one energy state of the electron cloud ($\lambda$) at any given time. 
+
+The Hamiltonian of the electron system is:
+\[ H = \hat{T} + V(R) \]
+
+\subsection{Algorithm}
 
 1. Initialize runtime parameters:
 \begin{itemize}
@@ -111,6 +116,31 @@ Now we update the velocities:
 
 \subsection{Basis}
 
+\section{User interface}
+\subsection{Requirements}
+Very important:
+\begin{itemize}
+    \item Start/stop animation
+    \item Set time step parameters for quantum and classical subsystems
+    \item View any eigenstate $\psi_n$ and know its corresponding energy eigenvalue $E_n$, as well as the current state coefficient $c_j$.
+    \item View positions of nuclei and their direction vectors (!)
+    \item Know which eigenstate is currently active (radio button!)
+    \item Edit position and momentum variables for each nucleus (mass and velocity set seperately)
+    \item Display total energy as a graph, and energy residing in each subsystem
+    \item Toggle between probability (black and white) and color-coded real valued wave function
+    \item View forcefield due to quantum subsystem
+    \item In the event of a hop, add an option to explicitly pause and display this! 
+    \item View potential function
+\end{itemize}
+
+Less important:
+\begin{itemize}
+    \item View $\psi(t)$, the current total wavefunction of the electron
+    \item Edit electric potential parameters for each nucleus individually
+\end{itemize}
+
+\subsection{Implementation}
+Scalar field visualzation mode; this controls the "background" image. Can be set to show any of the individual energy eigenstates. There should be a toggle to have it always show the current energy eigenstate no matter what. Can also show the combined potential surface due to the atomic nuclei. If displaying an energy eigenstate, it can show the probability instead of the signed value of the wavefunction. Can also show the combined wavefunction $\psi(t)$.
 
 \end{document}
 
