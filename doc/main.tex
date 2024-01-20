@@ -77,23 +77,37 @@ The algorithm works like this:
 \[ V_{kj} = \bra{\Phi_k}H\ket{\Phi_j} \]
 \[ U_{kj} = \bra{\Phi_k(t_0)}H\ket{\Phi_j(t_0 + dt_c)} \]
 \[ T_{kj} = \frac{1}{dt_c}\log(U) \]
-\[ \dot{c}_j = -\frac{i}{\hbar} \sum_j (V_{kj} - i\hbar T_{kj})c_j \]
+\[ \dot{c}_k = -\frac{i}{\hbar} \sum_j (V_{kj} - i\hbar T_{kj})c_j \]
 
-5. Calculate potential surface hopping probability
+5. Potential surface hopping
+
+The probability of a hop from current surface $\lambda$ to another surface $k$ is:
 \[ P(\lambda\to k) = \frac{2\Re(T_{\lambda k} c_\lambda^* c_k)}{|c_\lambda|^2} \]
 
-Call a random number $r$ between 0 and 1. If $\sum_{l=1}^{k-1} P(\lambda\to k) < r < \sum_{l=1}^k P(\lambda\to k)$, then we will hop to this new state $k$.  
+Call a random number $r$ between 0 and 1. 
 
-6. Handling a hop
+If $\sum_{l=1}^{k-1} P(\lambda\to k) < r < \sum_{l=1}^k P(\lambda\to k)$, then we will hop to this new state $k$. It's possible and even likely to have no hops at all.
 
-Calculate the derivative coupling vector:
-
+Handling a hop requires calculating the time derivative coupling matrix:
+% dij[k]=sum(phi[:,i]*np.matmul(grad_H[:,:,k],phi[:,j]))/(Ei[j]-Ei[i])
+\[ d_{\lambda k} = \frac{\bra{\Phi_\lambda}\nabla_R H\ket{\Phi_k}}{E_k - E_\lambda} \]
 
 Determine the coefficient $\gamma$ to conserve total energy.
 
-5. Display to user
+\[ a = \sum_n d_{\lambda k}^{n2} \]
+\[ b = \sum_n v_n \cdot d_{\lambda k}^{n} \]
+\[ c = E_k - E_\lambda \]
 
-5. Goto 2
+If $b^2 - 4ac > 0$, calculate $\gamma = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$. The $\pm$ there should have the same sign as $b$.
+
+On the other hand, if If $b^2 - 4ac < 0$, $\gamma = b / a$.
+
+Now we update the velocities:
+\[ v'_n = v_n - \gamma d^n_{\lambda k} \]
+
+6. Display to user
+
+7. Goto 2
 
 \subsection{Basis}
 
