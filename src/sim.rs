@@ -1,6 +1,7 @@
 use std::time::Instant;
 
-use nalgebra::{DMatrix, MatrixN, Point2, Vector2, ComplexField};
+use eigenvalues::matrix_operations::MatrixOperations;
+use nalgebra::{DMatrix, MatrixN, Point2, Vector2, ComplexField, DVector};
 use num_complex::Complex64;
 
 use crate::array2d::Array2D;
@@ -9,6 +10,7 @@ const NUCLEAR_MASS: f32 = 1.0;
 const ELECTRON_MASS: f32 = 1.0;
 const HBAR: f32 = 1.0;
 
+#[derive(Clone)]
 pub struct SimConfig {
     // Options which should NOT change during runtime
     /// Spacing between adjacent points on the grid
@@ -156,9 +158,9 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
 ///                   | 0   k   0 |
 fn hamiltonian(
     cfg: &SimConfig,
-    psi: &Array2D<Complex64>,
+    psi: &Array2D<f32>,
     potential: &Array2D<f32>,
-) -> Array2D<Complex64> {
+) -> Array2D<f32> {
     let mut output = Array2D::new(psi.width(), psi.height());
 
     for x in 0..psi.width() {
@@ -168,7 +170,7 @@ fn hamiltonian(
 
             let potential_pt = potential[center_grid_coord];
 
-            let mut sum = Complex64::from(0.0);
+            let mut sum = 0.0;
 
             for (off, coefficient) in [
                 (Vector2::new(-1, 0), 1.0),
@@ -179,16 +181,47 @@ fn hamiltonian(
             ] {
                 if let Some(grid_coord) = bounds_check(center_world_coord + off, psi.width() as i32)
                 {
-                    sum += Complex64::from(coefficient as f64) * psi[grid_coord];
+                    sum += coefficient * psi[grid_coord];
                 }
             }
 
-            let kinetic = sum * (-HBAR / ELECTRON_MASS / 2.0 / cfg.dx.powi(2)) as f64;
-            output[center_grid_coord] = kinetic + Complex64::from(potential_pt as f64);
+            let kinetic = sum * (-HBAR / ELECTRON_MASS / 2.0 / cfg.dx.powi(2));
+
+            output[center_grid_coord] = kinetic + potential_pt;
         }
     }
 
     output
+}
+
+#[derive(Clone)]
+struct HamiltonianObject {
+    diag: DVector<f64>,
+    cfg: SimConfig,
+}
+
+impl HamiltonianObject {
+    pub fn from_potential(potential: &Array2D<f32>, cfg: &SimConfig) -> Self {
+        Self {
+            cfg: cfg.clone(),
+            // Diagonal includes both the potential AND the stencil centers
+            diag: potential.data().iter().map(|v| *v as f64 - 4.0).collect(),
+        }
+    }
+}
+
+impl MatrixOperations for HamiltonianObject {
+    fn ncols(&self) -> usize {
+        self.diag.data().len()
+    }
+
+    fn nrows(&self) -> usize {
+        self.diag.data().len()
+    }
+
+    fn diagonal(&self) -> DVector<f64> {
+        
+    }
 }
 
 fn hamiltonian_flat(

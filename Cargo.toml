@@ -21,7 +21,7 @@ serde = { version = "1", features = ["derive"] }
 
 # TODO: Switch to glam instead ...
 nalgebra = { version = "0.32.2", features = ["serde"] }
-arpack-ng = "0.2.2"
+eigenvalues = "0.4.0"
 num-complex = "0.4"
 ndarray = "0.15.6"
 
