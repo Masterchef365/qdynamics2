@@ -134,9 +134,9 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
 ///                 H = (-ħ/2m)∇² + V
 ///
 /// In the 2D finite difference the stencil looks like:
-///                   | 0   1   0 |
-///                   | 1  V-4  1 |
-///                   | 0   1   0 |
+///                   | 0   k   0 |
+///                   | k  V-4k k | where k = -ħ/2m
+///                   | 0   k   0 |
 fn hamiltonian(
     cfg: &SimConfig,
     psi: &Array2D<Complex64>,
@@ -158,7 +158,7 @@ fn hamiltonian(
                 (Vector2::new(1, 0), 1.0),
                 (Vector2::new(0, 1), 1.0),
                 (Vector2::new(0, -1), 1.0),
-                (Vector2::new(0, 0), potential_pt - 4.0),
+                (Vector2::new(0, 0), -4.0),
             ] {
                 if let Some(grid_coord) = bounds_check(center_world_coord + off, psi.width() as i32)
                 {
@@ -166,7 +166,8 @@ fn hamiltonian(
                 }
             }
 
-            output[center_grid_coord] = sum;
+            let kinetic = sum * (-HBAR / ELECTRON_MASS / 2.0 / cfg.dx.powi(2)) as f64;
+            output[center_grid_coord] = kinetic + Complex64::from(potential_pt as f64);
         }
     }
 
