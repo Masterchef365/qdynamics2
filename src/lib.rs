@@ -40,7 +40,7 @@ fn initial_state(cfg: &SimConfig) -> SimState {
             .map(|n| if n == 0 { 1.0 } else { 0.0 })
             .collect(),
         nuclei: vec![Nucleus {
-            pos: Point2::new(cfg.grid_width as f32 / 2., cfg.grid_width as f32 / 2.),
+            pos: Point2::new(cfg.grid_width as f64 / 2., cfg.grid_width as f64 / 2.),
             vel: Vector2::zeros(),
         }],
     }
