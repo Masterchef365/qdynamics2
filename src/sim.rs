@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use nalgebra::{DMatrix, MatrixN, Point2, Vector2};
+use nalgebra::{DMatrix, MatrixN, Point2, Vector2, ComplexField};
 use num_complex::Complex64;
 
 use crate::array2d::Array2D;
@@ -80,6 +80,11 @@ impl Sim {
 fn calculate_artefacts(cfg: &SimConfig, state: &SimState) -> SimArtefacts {
     let potential = calculate_potential(cfg, state);
     let (energies, eigenstates) = solve_schrödinger(cfg, &potential);
+
+    let psi = eigenstates[0].map(|v| Complex64::from(*v as f64));
+    let h_psi = hamiltonian(cfg, &psi, &potential);
+    let div: Vec<f64> = h_psi.data().iter().zip(psi.data()).map(|(hpsi, psi)| (hpsi/psi).abs()).collect();
+    dbg!(div);
 
     SimArtefacts {
         eigenstates,
@@ -202,7 +207,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
     // https://docs.rs/arpack-ng/latest/src/closure/closure.rs.html#6-17
     // https://docs.rs/arpack-ng/latest/src/arpack_ng/ndarray.rs.html#9-57
 
-    let start = Instant::now(); 
+    let start = Instant::now();
     let (energies, eigenstates) = arpack_ng::eigenvectors(
         |input_vector, mut output_vector| {
             hamiltonian_flat(
@@ -233,7 +238,6 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
     assert!(energies.iter().all(|energy| energy.im.abs() < thresh));
     assert!(eigenstates.iter().all(|entry| entry.im.abs() < thresh));
 
-
     let energies: Vec<f32> = energies.iter().map(|energy| energy.re as f32).collect();
 
     // TODO: Is outer_iter really the right one?
@@ -261,6 +265,5 @@ fn calculate_classical_energy(cfg: &SimConfig, state: &SimState) -> f32 {
 */
 
 impl Sim {
-    pub fn step(&mut self) {
-    }
+    pub fn step(&mut self) {}
 }

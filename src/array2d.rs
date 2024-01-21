@@ -43,6 +43,10 @@ impl<T> Array2D<T> {
     pub fn height(&self) -> usize {
         self.data.len() / self.width
     }
+
+    pub fn map<U>(&self, f: impl FnMut(&T) -> U) -> Array2D<U> {
+        Array2D::from_array(self.width(), self.data().iter().map(f).collect())
+    }
 }
 
 impl<T> std::ops::Index<GridPos> for Array2D<T> {
