@@ -49,11 +49,11 @@ fn initial_state(cfg: &SimConfig) -> SimState {
 fn initial_cfg() -> SimConfig {
     SimConfig {
         dx: 1.0,
-        grid_width: 100,
+        grid_width: 20,
         v0: -1.,
         v_soft: 0.1,
         v_scale: 1.,
-        n_states: 10,
-        num_solver_iters: 1000,
+        n_states: 30,
+        num_solver_iters: 100,
     }
 }
