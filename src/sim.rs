@@ -20,6 +20,10 @@ pub struct SimConfig {
     pub v_soft: f32,
     /// Potential function scale factor
     pub v_scale: f32,
+
+    /// Number of eigenstates needed
+    pub n_states: usize,
+    pub num_solver_iters: usize,
     // /// Mass of each nucleus
 }
 
@@ -127,31 +131,50 @@ fn calculate_energy_eigenbasis(
     todo!()
 }
 
-/// Calculates the array index of a
-fn calc_grid_array_index(x: i32, y: i32, width: i32) -> Option<usize> {
-    (x > 0 && y > 0 && x < width && y < width).then(|| (x + y * width) as usize)
+/// Returns false if out of bounds with the given width
+fn bounds_check(pt: Point2<i32>, width: i32) -> bool {
+    pt.x > 0 && pt.y > 0 && pt.x < width && pt.y < width
 }
 
-/// Generates the second-derivative finite-difference stencil in the position basis
-/// NOTE: This assumes the function is zero outside of the boundaries!
-fn second_derivative_matrix(width: i32) -> DMatrix<f32> {
-    let n = width * width;
-    // Oh dear this matrix is going to be fucking HUGE
-    let mut mat = DMatrix::zeros(n, n);
+/// Solves the Schrödinger equation for the first N energy eigenstates
+///
+/// Generates the second-derivative finite-difference stencil in the position basis. This is then
+/// combined with the potential to form the Hamiltonian.
+/*
+///
+///                 H = (-ħ/2m)∇² + V
+///
+/// In the 2D finite difference the stencil looks like:
+///                   | 0   1   0 |
+///                   | 1  V-4  1 |
+///                   | 0   1   0 |
+*/
+fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, Vec<Array2D<f32>>) {
+    assert_eq!(cfg.grid_width, potential.width());
 
-    for x in 0..width {
-        for y in 0..width {
-            for (off_x, off_y, coefficient) in [
-                (-1, 0, 1.0),
-                (1, 0, 1.0),
-                (0, 1, 1.0),
-                (0, -1, 1.0),
-                (0, 0, -4.0),
-            ] {
-                mat[calc_grid_array_index(x+off_x, y+off_y, width)] += coefficient;
-            }
-        }
-    }
+    // Width
+    let w = cfg.grid_width as i32;
+
+    let av = |input_vector, mut output_vector| {
+        ()
+    };
+
+    let vector_length = potential.width() * potential.height();
+
+    // https://gitlab.com/solidtux-rust/arpack-ng/-/blob/master/examples/simple.rs?ref_type=heads
+    // https://help.scilab.org/docs/5.3.1/en_US/znaupd.html
+    // https://docs.rs/arpack-ng/latest/src/arpack_ng/ndarray.rs.html#9-57
+
+    arpack_ng::eigenvectors(
+        av,
+        vector_length,
+        &arpack_ng::Which::SmallestRealPart,
+        cfg.n_states,
+        vector_length,
+        cfg.num_solver_iters,
+    );
+
+    todo!()
 }
 
 fn calculate_classical_energy(cfg: &SimConfig, state: &SimState) -> f32 {
