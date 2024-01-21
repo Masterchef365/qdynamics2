@@ -191,6 +191,14 @@ impl HamiltonianObject {
     }
 }
 
+fn nalgebra_to_array2d(vs: DVectorSlice<f64>, cfg: &SimConfig) -> Array2D<f64> {
+    Array2D::from_array(cfg.grid_width, vs.as_slice().to_vec())
+}
+
+fn array2d_to_nalgebra(arr: &Array2D<f64>) -> DVector<f64> {
+    arr.data().to_vec().into()
+}
+
 impl MatrixOperations for HamiltonianObject {
     fn ncols(&self) -> usize {
         self.diag.len()
@@ -209,7 +217,7 @@ impl MatrixOperations for HamiltonianObject {
     }
 
     fn matrix_vector_prod(&self, vs: DVectorSlice<f64>) -> DVector<f64> {
-        let psi = Array2D::from_array(self.cfg.grid_width, vs.as_slice().to_vec());
+        let psi = nalgebra_to_array2d(vs, &self.cfg);
 
         let mut output = Array2D::new(self.cfg.grid_width, self.cfg.grid_width);
 
@@ -242,10 +250,10 @@ impl MatrixOperations for HamiltonianObject {
             }
         }
 
-        output.data().to_vec().into()
+        array2d_to_nalgebra(&output)
     }
 
-    fn matrix_matrix_prod(&self, mtx: DMatrixSlice<f64>) -> DMatrix<f64> {
+    fn matrix_matrix_prod(&self, _mtx: DMatrixSlice<f64>) -> DMatrix<f64> {
         unimplemented!()
     }
 }
