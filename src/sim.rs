@@ -144,7 +144,7 @@ fn grid_positions(cfg: &SimConfig) -> Array2D<Point2<f32>> {
 
 /// Returns false if out of bounds with the given width
 fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
-    (pt.x > 0 && pt.y > 0 && pt.x < width && pt.y < width).then(|| (pt.x as usize, pt.y as usize))
+    (pt.x >= 0 && pt.y >= 0 && pt.x < width && pt.y < width).then(|| (pt.x as usize, pt.y as usize))
 }
 
 ///
