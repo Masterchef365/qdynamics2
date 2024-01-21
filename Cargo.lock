@@ -2147,6 +2147,7 @@ dependencies = [
  "env_logger",
  "log",
  "nalgebra",
+ "ndarray",
  "num-complex",
  "serde",
  "wasm-bindgen-futures",

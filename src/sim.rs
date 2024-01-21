@@ -202,21 +202,15 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
     // https://docs.rs/arpack-ng/latest/src/closure/closure.rs.html#6-17
     // https://docs.rs/arpack-ng/latest/src/arpack_ng/ndarray.rs.html#9-57
 
-    let mut calls = 0;
-    let mut accum = 0.0;
     let start = Instant::now(); 
     let (energies, eigenstates) = arpack_ng::eigenvectors(
         |input_vector, mut output_vector| {
-            calls += 1;
-            let start_internal = Instant::now(); 
             hamiltonian_flat(
                 cfg,
                 potential,
                 input_vector.as_slice().unwrap(),
                 output_vector.as_slice_mut().unwrap(),
             );
-            let secs_internal = start_internal.elapsed().as_secs_f32();
-            accum += secs_internal;
         },
         vector_length,
         &arpack_ng::Which::SmallestRealPart,
@@ -225,16 +219,16 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
         cfg.num_solver_iters,
     )
     .unwrap();
-    let secs = start.elapsed().as_secs_f32();
+    let time = start.elapsed().as_secs_f32();
 
     // Ensure there is no complex component of energy nor eigenstate
     dbg!(&eigenstates);
     dbg!(&energies);
 
-    dbg!(secs);
-    dbg!(accum);
-    dbg!(calls);
+    dbg!(time);
+    dbg!(eigenstates.shape());
 
+    // Yeesh
     let thresh = 1.0;
     assert!(energies.iter().all(|energy| energy.im.abs() < thresh));
     assert!(eigenstates.iter().all(|entry| entry.im.abs() < thresh));
@@ -244,7 +238,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
 
     // TODO: Is outer_iter really the right one?
     let eigenstates: Vec<Array2D<f32>> = eigenstates
-        .outer_iter()
+        .axis_iter(ndarray::Axis(1))
         .map(|eigenstate| {
             let eigenstate: Vec<f32> = eigenstate.iter().map(|entry| entry.re as f32).collect();
             Array2D::from_array(cfg.grid_width, eigenstate)
