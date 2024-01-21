@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use eigenvalues::{
-    davidson::Davidson, matrix_operations::MatrixOperations, DavidsonCorrection, SpectrumTarget,
+    davidson::Davidson, matrix_operations::MatrixOperations, DavidsonCorrection, SpectrumTarget, lanczos::HermitianLanczos,
 };
 use nalgebra::{
     ComplexField, DMatrix, DMatrixSlice, DVector, DVectorSlice, MatrixN, Point2, Vector2,
@@ -271,12 +271,10 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     assert_eq!(cfg.grid_width, potential.width());
 
     let start = Instant::now();
-    let eig = Davidson::new(
+    let eig = HermitianLanczos::new(
         HamiltonianObject::from_potential(potential, cfg),
-        cfg.n_states,
-        DavidsonCorrection::DPR,
+        100,
         SpectrumTarget::Lowest,
-        1e-4,
     )
     .unwrap();
     let time = start.elapsed().as_secs_f64();
