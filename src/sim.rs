@@ -130,7 +130,6 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
     (pt.x > 0 && pt.y > 0 && pt.x < width && pt.y < width).then(|| (pt.x as usize, pt.y as usize))
 }
 
-/*
 ///
 ///                 H = (-ħ/2m)∇² + V
 ///
@@ -138,7 +137,6 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
 ///                   | 0   1   0 |
 ///                   | 1  V-4  1 |
 ///                   | 0   1   0 |
-*/
 fn hamiltonian(
     cfg: &SimConfig,
     psi: &Array2D<Complex64>,
@@ -160,7 +158,7 @@ fn hamiltonian(
                 (Vector2::new(1, 0), 1.0),
                 (Vector2::new(0, 1), 1.0),
                 (Vector2::new(0, -1), 1.0),
-                (Vector2::new(0, 0), -4.0 + potential_pt),
+                (Vector2::new(0, 0), potential_pt - 4.0),
             ] {
                 if let Some(grid_coord) = bounds_check(center_world_coord + off, psi.width() as i32)
                 {
