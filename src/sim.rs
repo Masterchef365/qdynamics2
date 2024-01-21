@@ -77,7 +77,7 @@ impl Sim {
 
 fn calculate_artefacts(cfg: &SimConfig, state: &SimState) -> SimArtefacts {
     let potential = calculate_potential(cfg, state);
-    let (energies, eigenstates) = calculate_energy_eigenbasis(cfg, &potential);
+    let (energies, eigenstates) = solve_schrödinger(cfg, &potential);
 
     SimArtefacts {
         eigenstates,
@@ -123,13 +123,6 @@ fn grid_positions(cfg: &SimConfig) -> Array2D<Point2<f32>> {
     }
 
     output
-}
-
-fn calculate_energy_eigenbasis(
-    cfg: &SimConfig,
-    potential: &Array2D<f32>,
-) -> (Vec<f32>, Vec<Array2D<f32>>) {
-    todo!()
 }
 
 /// Returns false if out of bounds with the given width
@@ -224,6 +217,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
     todo!()
 }
 
+/*
 fn calculate_classical_energy(cfg: &SimConfig, state: &SimState) -> f32 {
     let kinetic_energy: f32 = state
         .nuclei
@@ -233,3 +227,4 @@ fn calculate_classical_energy(cfg: &SimConfig, state: &SimState) -> f32 {
 
     todo!()
 }
+*/
