@@ -247,3 +247,8 @@ fn calculate_classical_energy(cfg: &SimConfig, state: &SimState) -> f32 {
     todo!()
 }
 */
+
+impl Sim {
+    pub fn step(&mut self) {
+    }
+}
