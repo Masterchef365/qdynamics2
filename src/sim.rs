@@ -133,8 +133,8 @@ fn calculate_energy_eigenbasis(
 }
 
 /// Returns false if out of bounds with the given width
-fn bounds_check(pt: Point2<i32>, width: i32) -> bool {
-    pt.x > 0 && pt.y > 0 && pt.x < width && pt.y < width
+fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
+    (pt.x > 0 && pt.y > 0 && pt.x < width && pt.y < width).then(|| (pt.x as usize, pt.y as usize))
 }
 
 /*
@@ -149,14 +149,40 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> bool {
 fn hamiltonian(cfg: &SimConfig, psi: Array2D<f32>, potential: &Array2D<f32>) -> Array2D<f32> {
     let mut output = Array2D::new(psi.width(), psi.height());
 
-    for y in 0..psi.height() as i32 {
-        for x in 0..psi.width() as i32 {
-            for (offset, coeff) in 
+    for x in 0..psi.width() {
+        for y in 0..psi.height() {
+            let center_world_coord = Point2::new(x as i32, y as i32);
+            let center_grid_coord = (x, y);
+
+            let potential_pt = potential[center_grid_coord];
+
+            let mut sum = 0.0;
+
+            for (off, coefficient) in [
+                (Vector2::new(-1, 0), 1.0),
+                (Vector2::new(1, 0), 1.0),
+                (Vector2::new(0, 1), 1.0),
+                (Vector2::new(0, -1), 1.0),
+                (Vector2::new(0, 0), -4.0 + potential_pt),
+            ] {
+                if let Some(grid_coord) = bounds_check(center_world_coord + off, psi.width() as i32)
+                {
+                    sum += coefficient * psi[grid_coord];
+                }
+            }
+
+            output[center_grid_coord] = sum;
         }
     }
+
+    output
 }
 
-fn hamiltonian_flat(flat_input_vect: &[Complex64]) -> Vec<Complex64> {
+fn hamiltonian_flat(
+    flat_input_vect: &[Complex64],
+    flat_output_vect: &[Complex64],
+) -> Vec<Complex64> {
+    todo!()
 }
 
 /// Solves the Schrödinger equation for the first N energy eigenstates
@@ -176,7 +202,10 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
 
     let res = arpack_ng::eigenvectors(
         |input_vector, mut output_vector| {
-            output_vector.assign(&input_vector);
+            hamiltonian_flat(
+                input_vector.as_slice().unwrap(),
+                output_vector.as_slice_mut().unwrap(),
+            );
         },
         vector_length,
         &arpack_ng::Which::SmallestRealPart,
