@@ -223,11 +223,13 @@ impl MatrixOperations for HamiltonianObject {
                 let mut sum = 0.0;
 
                 for (off, coeff) in [
-                    (Vector2::new(-1, 0), 1.0),
-                    (Vector2::new(1, 0), 1.0),
-                    (Vector2::new(0, 1), 1.0),
-                    (Vector2::new(0, -1), 1.0),
-                    (Vector2::new(0, 0), -4.0),
+                    //(Vector2::new(-1, 0), 1.0),
+                    //(Vector2::new(1, 0), 1.0),
+                    //(Vector2::new(0, 1), 1.0),
+                    //(Vector2::new(0, -1), 1.0),
+                    //(Vector2::new(0, 0), -4.0),
+
+                    (Vector2::new(0, 0), 1.0),
                 ] {
                     if let Some(grid_coord) =
                         bounds_check(center_world_coord + off, psi.width() as i32)
@@ -238,7 +240,7 @@ impl MatrixOperations for HamiltonianObject {
 
                 let kinetic = sum; // * (-HBAR / ELECTRON_MASS / 2.0 / self.cfg.dx.powi(2));
 
-                output[center_grid_coord] = kinetic + self.potential[center_grid_coord];
+                output[center_grid_coord] = kinetic; //kinetic + self.potential[center_grid_coord];
             }
         }
 
