@@ -20,7 +20,7 @@ log = "0.4"
 serde = { version = "1", features = ["derive"] }
 
 # TODO: Switch to glam instead ...
-nalgebra = { version = "0.32.2", features = ["serde"] }
+nalgebra = { version = "0.24", features = ["serde"] }
 eigenvalues = "0.4.0"
 num-complex = "0.4"
 ndarray = "0.15.6"

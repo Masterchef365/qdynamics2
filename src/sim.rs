@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use eigenvalues::matrix_operations::MatrixOperations;
-use nalgebra::{DMatrix, MatrixN, Point2, Vector2, ComplexField, DVector};
+use nalgebra::{DMatrix, MatrixN, Point2, Vector2, ComplexField, DVector, DVectorSlice, DMatrixSlice};
 use num_complex::Complex64;
 
 use crate::array2d::Array2D;
@@ -80,10 +80,11 @@ impl Sim {
 }
 
 fn calculate_artefacts(cfg: &SimConfig, state: &SimState) -> SimArtefacts {
+    /*
     let potential = calculate_potential(cfg, state);
     let (energies, eigenstates) = solve_schrödinger(cfg, &potential);
 
-    let psi = eigenstates[0].map(|v| Complex64::from(*v as f64));
+    let psi = eigenstates[0].map(|v| *v as f64);
     let h_psi = hamiltonian(cfg, &psi, &potential);
     let percent_error: Vec<f64> = h_psi
         .data()
@@ -103,6 +104,8 @@ fn calculate_artefacts(cfg: &SimConfig, state: &SimState) -> SimArtefacts {
         energies,
         potential,
     }
+    */
+    todo!()
 }
 
 /// Calculate the electric potential in the position basis
@@ -133,7 +136,7 @@ fn softened_potential(r: f32, cfg: &SimConfig) -> f32 {
 
 /// World-space positions at grid points
 fn grid_positions(cfg: &SimConfig) -> Array2D<Point2<f32>> {
-    let mut output = Array2D::new(cfg.grid_width, cfg.grid_width);
+    let mut output = Array2D::from_array(cfg.grid_width, vec![Point2::origin(); cfg.grid_width.pow(2)]);
 
     for y in 0..cfg.grid_width {
         for x in 0..cfg.grid_width {
@@ -202,28 +205,44 @@ struct HamiltonianObject {
 
 impl HamiltonianObject {
     pub fn from_potential(potential: &Array2D<f32>, cfg: &SimConfig) -> Self {
+        /*
         Self {
             cfg: cfg.clone(),
             // Diagonal includes both the potential AND the stencil centers
             diag: potential.data().iter().map(|v| *v as f64 - 4.0).collect(),
         }
+        */
+        todo!()
     }
 }
 
 impl MatrixOperations for HamiltonianObject {
     fn ncols(&self) -> usize {
-        self.diag.data().len()
+        self.diag.len()
     }
 
     fn nrows(&self) -> usize {
-        self.diag.data().len()
+        self.diag.len()
     }
 
     fn diagonal(&self) -> DVector<f64> {
-        
+        self.diag.clone()
+    }
+
+    fn set_diagonal(&mut self, diag: &DVector<f64>) {
+        todo!()
+    }
+
+    fn matrix_vector_prod(&self, vs: DVectorSlice<f64>) -> DVector<f64> {
+        todo!()
+    }
+
+    fn matrix_matrix_prod(&self, mtx: DMatrixSlice<f64>) -> DMatrix<f64> {
+        unimplemented!()
     }
 }
 
+/*
 fn hamiltonian_flat(
     cfg: &SimConfig,
     potential: &Array2D<f32>,
@@ -234,6 +253,7 @@ fn hamiltonian_flat(
     let output = hamiltonian(cfg, &psi, potential);
     flat_output_vect.copy_from_slice(output.data());
 }
+*/
 
 /// Solves the Schrödinger equation for the first N energy eigenstates
 ///
@@ -245,12 +265,8 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
     // Width
     let vector_length = potential.width() * potential.height();
 
-    // https://gitlab.com/solidtux-rust/arpack-ng/-/blob/master/examples/simple.rs?ref_type=heads
-    // https://help.scilab.org/docs/5.3.1/en_US/znaupd.html
-    // https://docs.rs/arpack-ng/latest/src/closure/closure.rs.html#6-17
-    // https://docs.rs/arpack-ng/latest/src/arpack_ng/ndarray.rs.html#9-57
-
     let start = Instant::now();
+    /*
     let (energies, eigenstates) = arpack_ng::eigenvectors(
         |input_vector, mut output_vector| {
             hamiltonian_flat(
@@ -293,6 +309,8 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
         .collect();
 
     (energies, eigenstates)
+    */
+    todo!()
 }
 
 /*
