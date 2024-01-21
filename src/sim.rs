@@ -83,8 +83,18 @@ fn calculate_artefacts(cfg: &SimConfig, state: &SimState) -> SimArtefacts {
 
     let psi = eigenstates[0].map(|v| Complex64::from(*v as f64));
     let h_psi = hamiltonian(cfg, &psi, &potential);
-    let div: Vec<f64> = h_psi.data().iter().zip(psi.data()).map(|(hpsi, psi)| (hpsi/psi).abs()).collect();
-    dbg!(div);
+    let percent_error: Vec<f64> = h_psi
+        .data()
+        .iter()
+        .zip(psi.data())
+        .zip(&energies)
+        .map(|((hpsi, psi), energy)| {
+            (hpsi - *energy as f64 * psi).abs() / (*energy as f64 * psi).abs()
+        })
+        .collect();
+
+    dbg!(percent_error);
+    panic!();
 
     SimArtefacts {
         eigenstates,
