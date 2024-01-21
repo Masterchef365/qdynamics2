@@ -146,7 +146,7 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
 ///                   | 1  V-4  1 |
 ///                   | 0   1   0 |
 */
-fn hamiltonian(cfg: &SimConfig, psi: Array2D<f32>, potential: &Array2D<f32>) -> Array2D<f32> {
+fn hamiltonian(cfg: &SimConfig, psi: &Array2D<Complex64>, potential: &Array2D<f32>) -> Array2D<Complex64> {
     let mut output = Array2D::new(psi.width(), psi.height());
 
     for x in 0..psi.width() {
@@ -156,7 +156,7 @@ fn hamiltonian(cfg: &SimConfig, psi: Array2D<f32>, potential: &Array2D<f32>) -> 
 
             let potential_pt = potential[center_grid_coord];
 
-            let mut sum = 0.0;
+            let mut sum = Complex64::from(0.0);
 
             for (off, coefficient) in [
                 (Vector2::new(-1, 0), 1.0),
@@ -167,7 +167,7 @@ fn hamiltonian(cfg: &SimConfig, psi: Array2D<f32>, potential: &Array2D<f32>) -> 
             ] {
                 if let Some(grid_coord) = bounds_check(center_world_coord + off, psi.width() as i32)
                 {
-                    sum += coefficient * psi[grid_coord];
+                    sum += Complex64::from(coefficient as f64) * psi[grid_coord];
                 }
             }
 
@@ -179,10 +179,14 @@ fn hamiltonian(cfg: &SimConfig, psi: Array2D<f32>, potential: &Array2D<f32>) -> 
 }
 
 fn hamiltonian_flat(
+    cfg: &SimConfig,
+    potential: &Array2D<f32>,
     flat_input_vect: &[Complex64],
-    flat_output_vect: &[Complex64],
-) -> Vec<Complex64> {
-    todo!()
+    flat_output_vect: &mut [Complex64],
+) {
+    let psi = Array2D::from_array(potential.width(), flat_input_vect.to_vec());
+    let output = hamiltonian(cfg, &psi, potential);
+    flat_output_vect.copy_from_slice(output.data());
 }
 
 /// Solves the Schrödinger equation for the first N energy eigenstates
@@ -203,6 +207,8 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
     let res = arpack_ng::eigenvectors(
         |input_vector, mut output_vector| {
             hamiltonian_flat(
+                cfg,
+                potential,
                 input_vector.as_slice().unwrap(),
                 output_vector.as_slice_mut().unwrap(),
             );
