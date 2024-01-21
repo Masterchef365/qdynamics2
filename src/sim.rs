@@ -139,7 +139,11 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
 ///                   | 1  V-4  1 |
 ///                   | 0   1   0 |
 */
-fn hamiltonian(cfg: &SimConfig, psi: &Array2D<Complex64>, potential: &Array2D<f32>) -> Array2D<Complex64> {
+fn hamiltonian(
+    cfg: &SimConfig,
+    psi: &Array2D<Complex64>,
+    potential: &Array2D<f32>,
+) -> Array2D<Complex64> {
     let mut output = Array2D::new(psi.width(), psi.height());
 
     for x in 0..psi.width() {
@@ -222,10 +226,13 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
     let energies: Vec<f32> = energies.iter().map(|energy| energy.re as f32).collect();
 
     // TODO: Is outer_iter really the right one?
-    let eigenstates: Vec<Array2D<f32>> = eigenstates.outer_iter().map(|eigenstate| {
-        let eigenstate: Vec<f32> = eigenstate.iter().map(|entry| entry.re as f32).collect();
-        Array2D::from_array(cfg.grid_width, eigenstate)
-    }).collect();
+    let eigenstates: Vec<Array2D<f32>> = eigenstates
+        .outer_iter()
+        .map(|eigenstate| {
+            let eigenstate: Vec<f32> = eigenstate.iter().map(|entry| entry.re as f32).collect();
+            Array2D::from_array(cfg.grid_width, eigenstate)
+        })
+        .collect();
 
     (energies, eigenstates)
 }

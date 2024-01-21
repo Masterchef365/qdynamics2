@@ -62,7 +62,8 @@ mod tests {
             2,
             10,
             100,
-        ).unwrap();
+        )
+        .unwrap();
         println!("{}", val);
     }
 }
