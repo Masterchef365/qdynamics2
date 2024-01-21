@@ -1,6 +1,8 @@
 use std::time::Instant;
 
-use eigenvalues::matrix_operations::MatrixOperations;
+use eigenvalues::{
+    davidson::Davidson, matrix_operations::MatrixOperations, DavidsonCorrection, SpectrumTarget,
+};
 use nalgebra::{
     ComplexField, DMatrix, DMatrixSlice, DVector, DVectorSlice, MatrixN, Point2, Vector2,
 };
@@ -83,10 +85,10 @@ impl Sim {
 }
 
 fn calculate_artefacts(cfg: &SimConfig, state: &SimState) -> SimArtefacts {
-    /*
     let potential = calculate_potential(cfg, state);
     let (energies, eigenstates) = solve_schrödinger(cfg, &potential);
 
+    /*
     let psi = eigenstates[0].map(|v| *v as f64);
     let h_psi = hamiltonian(cfg, &psi, &potential);
     let percent_error: Vec<f64> = h_psi
@@ -231,7 +233,7 @@ impl MatrixOperations for HamiltonianObject {
                     }
                 }
 
-                let kinetic = sum;// * (-HBAR / ELECTRON_MASS / 2.0 / self.cfg.dx.powi(2));
+                let kinetic = sum; // * (-HBAR / ELECTRON_MASS / 2.0 / self.cfg.dx.powi(2));
 
                 let vect_idx = psi.calc_index(center_grid_coord);
                 let potential = self.diag[vect_idx];
@@ -268,34 +270,23 @@ flat_output_vect.copy_from_slice(output.data());
 fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, Vec<Array2D<f64>>) {
     assert_eq!(cfg.grid_width, potential.width());
 
-    // Width
-    let vector_length = potential.width() * potential.height();
-
     let start = Instant::now();
-    /*
-       let (energies, eigenstates) = arpack_ng::eigenvectors(
-       |input_vector, mut output_vector| {
-       hamiltonian_flat(
-       cfg,
-       potential,
-       input_vector.as_slice().unwrap(),
-       output_vector.as_slice_mut().unwrap(),
-       );
-       },
-       vector_length,
-       &arpack_ng::Which::SmallestRealPart,
-       cfg.n_states,
-       vector_length,
-       cfg.num_solver_iters,
-       )
-       .unwrap();
-       let time = start.elapsed().as_secs_f64();
+    let eig = Davidson::new(
+        HamiltonianObject::from_potential(potential, cfg),
+        cfg.n_states,
+        DavidsonCorrection::DPR,
+        SpectrumTarget::Lowest,
+        1e-4,
+    )
+    .unwrap();
+    let time = start.elapsed().as_secs_f64();
 
     // Ensure there is no complex component of energy nor eigenstate
-    dbg!(&eigenstates);
-    dbg!(&energies);
+    dbg!(&eig.eigenvalues);
+    dbg!(&eig.eigenvectors);
 
     dbg!(time);
+    /*
     dbg!(eigenstates.shape());
 
     // Yeesh
