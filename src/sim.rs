@@ -171,7 +171,7 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
 */
 #[derive(Clone)]
 struct HamiltonianObject {
-    diag: DVector<f64>,
+    potential: Array2D<f64>,
     cfg: SimConfig,
 }
 
@@ -180,13 +180,7 @@ impl HamiltonianObject {
         Self {
             cfg: cfg.clone(),
             // Diagonal includes both the potential AND the stencil centers
-            diag: potential
-                .data()
-                .iter()
-                // NOTE: Central finite difference is here!
-                .map(|v| *v - 4.0)
-                .collect::<Vec<f64>>()
-                .into(),
+            potential: potential.clone(),
         }
     }
 }
@@ -201,19 +195,19 @@ fn array2d_to_nalgebra(arr: &Array2D<f64>) -> DVector<f64> {
 
 impl MatrixOperations for HamiltonianObject {
     fn ncols(&self) -> usize {
-        self.diag.len()
+        self.potential.data().len()
     }
 
     fn nrows(&self) -> usize {
-        self.diag.len()
+        self.potential.data().len()
     }
 
     fn diagonal(&self) -> DVector<f64> {
-        self.diag.clone()
+        unimplemented!()
     }
 
-    fn set_diagonal(&mut self, diag: &DVector<f64>) {
-        self.diag = diag.clone();
+    fn set_diagonal(&mut self, _diag: &DVector<f64>) {
+        unimplemented!()
     }
 
     fn matrix_vector_prod(&self, vs: DVectorSlice<f64>) -> DVector<f64> {
@@ -228,25 +222,23 @@ impl MatrixOperations for HamiltonianObject {
 
                 let mut sum = 0.0;
 
-                for off in [
-                    Vector2::new(-1, 0),
-                    Vector2::new(1, 0),
-                    Vector2::new(0, 1),
-                    Vector2::new(0, -1),
+                for (off, coeff) in [
+                    (Vector2::new(-1, 0), 1.0),
+                    (Vector2::new(1, 0), 1.0),
+                    (Vector2::new(0, 1), 1.0),
+                    (Vector2::new(0, -1), 1.0),
+                    (Vector2::new(0, 0), -4.0),
                 ] {
                     if let Some(grid_coord) =
                         bounds_check(center_world_coord + off, psi.width() as i32)
                     {
-                        sum += psi[grid_coord];
+                        sum += coeff * psi[grid_coord];
                     }
                 }
 
                 let kinetic = sum; // * (-HBAR / ELECTRON_MASS / 2.0 / self.cfg.dx.powi(2));
 
-                let vect_idx = psi.calc_index(center_grid_coord);
-                let potential = self.diag[vect_idx];
-
-                output[center_grid_coord] = kinetic + potential;
+                output[center_grid_coord] = kinetic + self.potential[center_grid_coord];
             }
         }
 
@@ -281,7 +273,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     let start = Instant::now();
     let eig = HermitianLanczos::new(
         HamiltonianObject::from_potential(potential, cfg),
-        100,
+        10,
         SpectrumTarget::Lowest,
     )
     .unwrap();
@@ -289,7 +281,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
 
     // Ensure there is no complex component of energy nor eigenstate
     dbg!(&eig.eigenvalues);
-    dbg!(&eig.eigenvectors);
+    //dbg!(&eig.eigenvectors);
 
     dbg!(time);
     /*
