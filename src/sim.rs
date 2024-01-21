@@ -1,4 +1,5 @@
 use nalgebra::{DMatrix, MatrixN, Point2, Vector2};
+use num_complex::Complex64;
 
 use crate::array2d::Array2D;
 
@@ -136,10 +137,6 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> bool {
     pt.x > 0 && pt.y > 0 && pt.x < width && pt.y < width
 }
 
-/// Solves the Schrödinger equation for the first N energy eigenstates
-///
-/// Generates the second-derivative finite-difference stencil in the position basis. This is then
-/// combined with the potential to form the Hamiltonian.
 /*
 ///
 ///                 H = (-ħ/2m)∇² + V
@@ -149,30 +146,45 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> bool {
 ///                   | 1  V-4  1 |
 ///                   | 0   1   0 |
 */
+fn hamiltonian(cfg: &SimConfig, psi: Array2D<f32>, potential: &Array2D<f32>) -> Array2D<f32> {
+    let mut output = Array2D::new(psi.width(), psi.height());
+
+    for y in 0..psi.height() as i32 {
+        for x in 0..psi.width() as i32 {
+            for (offset, coeff) in 
+        }
+    }
+}
+
+fn hamiltonian_flat(flat_input_vect: &[Complex64]) -> Vec<Complex64> {
+}
+
+/// Solves the Schrödinger equation for the first N energy eigenstates
+///
+/// Generates the second-derivative finite-difference stencil in the position basis. This is then
+/// combined with the potential to form the Hamiltonian.
 fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, Vec<Array2D<f32>>) {
     assert_eq!(cfg.grid_width, potential.width());
 
     // Width
-    let w = cfg.grid_width as i32;
-
-    let av = |input_vector, mut output_vector| {
-        ()
-    };
-
     let vector_length = potential.width() * potential.height();
 
     // https://gitlab.com/solidtux-rust/arpack-ng/-/blob/master/examples/simple.rs?ref_type=heads
     // https://help.scilab.org/docs/5.3.1/en_US/znaupd.html
+    // https://docs.rs/arpack-ng/latest/src/closure/closure.rs.html#6-17
     // https://docs.rs/arpack-ng/latest/src/arpack_ng/ndarray.rs.html#9-57
 
-    arpack_ng::eigenvectors(
-        av,
+    let res = arpack_ng::eigenvectors(
+        |input_vector, mut output_vector| {
+            output_vector.assign(&input_vector);
+        },
         vector_length,
         &arpack_ng::Which::SmallestRealPart,
         cfg.n_states,
         vector_length,
         cfg.num_solver_iters,
-    );
+    )
+    .unwrap();
 
     todo!()
 }
