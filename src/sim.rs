@@ -197,7 +197,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
     // https://docs.rs/arpack-ng/latest/src/closure/closure.rs.html#6-17
     // https://docs.rs/arpack-ng/latest/src/arpack_ng/ndarray.rs.html#9-57
 
-    let res = arpack_ng::eigenvectors(
+    let (energies, eigenstates) = arpack_ng::eigenvectors(
         |input_vector, mut output_vector| {
             hamiltonian_flat(
                 cfg,
@@ -214,7 +214,20 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
     )
     .unwrap();
 
-    todo!()
+    // Ensure there is no complex component of energy nor eigenstate
+    let thresh = 1e-10;
+    assert!(energies.iter().all(|energy| energy.im.abs() < thresh));
+    assert!(eigenstates.iter().all(|entry| entry.im.abs() < thresh));
+
+    let energies: Vec<f32> = energies.iter().map(|energy| energy.re as f32).collect();
+
+    // TODO: Is outer_iter really the right one?
+    let eigenstates: Vec<Array2D<f32>> = eigenstates.outer_iter().map(|eigenstate| {
+        let eigenstate: Vec<f32> = eigenstate.iter().map(|entry| entry.re as f32).collect();
+        Array2D::from_array(cfg.grid_width, eigenstate)
+    }).collect();
+
+    (energies, eigenstates)
 }
 
 /*
