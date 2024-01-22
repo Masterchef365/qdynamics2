@@ -73,7 +73,11 @@ impl Default for TemplateApp {
 impl TemplateApp {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        Default::default()
+        let mut inst = Self::default();
+
+        inst.update_view(&cc.egui_ctx);
+
+        inst
     }
 }
 
@@ -82,9 +86,25 @@ impl eframe::App for TemplateApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.sim.step();
 
+        CentralPanel::default().show(ctx, |ui| {
+            self.img.show(ui);
+        });
+
+        SidePanel::left("left_panel").show(ctx, |ui| {
+            let energies = &self.sim.artefacts.energies;
+            let res = ui.add(DragValue::new(&mut self.viewed_eigstate).clamp_range(0..=energies.len()-1));
+            ui.label(format!("Energy: {}", energies[self.viewed_eigstate]));
+
+            if res.changed() {
+                self.update_view(ctx);
+            }
+        });
+    }
+}
+
+impl TemplateApp {
+    fn update_view(&mut self, ctx: &egui::Context) {
         let eigstate = &self.sim.artefacts.eigenstates[self.viewed_eigstate];
-        //let sum: f64 = eigstate.data().iter().map(|x| x.abs()).sum();
-        //dbg!(sum);
 
         let w = eigstate.data().len();
         let image = eigstate.map(|v| {
@@ -99,15 +119,6 @@ impl eframe::App for TemplateApp {
 
         self.img.set_image("Spronkus".into(), ctx, image);
 
-        CentralPanel::default().show(ctx, |ui| {
-            self.img.show(ui);
-        });
-
-        SidePanel::left("left_panel").show(ctx, |ui| {
-            let energies = &self.sim.artefacts.energies;
-            ui.add(DragValue::new(&mut self.viewed_eigstate).clamp_range(0..=energies.len()-1));
-            ui.label(format!("Energy: {}", energies[self.viewed_eigstate]));
-        });
     }
 }
 
