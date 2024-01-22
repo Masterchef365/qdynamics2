@@ -333,7 +333,12 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
                     eigvects = vects
                         .columns()
                         .into_iter()
-                        .map(|col| nalgebra_to_array2d((&ndarray_to_nalgebra_vect(col.to_owned())).into(), cfg))
+                        .map(|col| {
+                            nalgebra_to_array2d(
+                                (&ndarray_to_nalgebra_vect(col.to_owned())).into(),
+                                cfg,
+                            )
+                        })
                         .collect();
                 }
                 _ => todo!(),
