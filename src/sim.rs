@@ -7,7 +7,7 @@ use eigenvalues::{
 use nalgebra::{
     ComplexField, DMatrix, DMatrixSlice, DVector, DVectorSlice, MatrixN, Point2, Vector2,
 };
-use num_complex::Complex64;
+use num_complex::{Complex64, ComplexFloat};
 
 use crate::array2d::Array2D;
 
@@ -281,6 +281,28 @@ flat_output_vect.copy_from_slice(output.data());
 fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, Vec<Array2D<f64>>) {
     assert_eq!(cfg.grid_width, potential.width());
 
+    // Commutator test:
+    let ham = HamiltonianObject::from_potential(potential, cfg);
+
+    let ident = DMatrix::identity(potential.data().len(), potential.data().len());
+
+    let ham_matrix = ham.matrix_matrix_prod((&ident).into());
+
+    //println!("{}", ham_matrix);
+
+    for col in 0..ham_matrix.ncols() {
+        for row in 0..ham_matrix.ncols() {
+            let a = ham_matrix[(row, col)];
+            let b = ham_matrix[(col, row)];
+            let diff = a - b;
+            if diff.abs() > 0.00001 {
+                panic!("{row} {col} {a} - {b} = {diff}");
+            }
+        }
+    }
+
+    todo!("It worked!");
+
     let start = Instant::now();
     let eig = HermitianLanczos::new(
         HamiltonianObject::from_potential(potential, cfg),
@@ -303,7 +325,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     let percent_err = (hpsi - &expect).abs().component_div(&expect.abs());
     let avg_err = percent_err.sum() / percent_err.len() as f64;
 
-    dbg!(percent_err);
+    //dbg!(percent_err);
     dbg!(avg_err);
     dbg!(&eig.eigenvalues[sel_idx]);
 
