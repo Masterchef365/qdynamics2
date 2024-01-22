@@ -1,4 +1,4 @@
-use egui::CentralPanel;
+use egui::{CentralPanel, SidePanel, DragValue};
 use image_view::{ImageViewWidget, array_to_imagedata};
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
@@ -55,6 +55,7 @@ mod image_view;
 pub struct TemplateApp {
     sim: Sim,
     img: ImageViewWidget,
+    viewed_eigstate: usize,
 }
 
 impl Default for TemplateApp {
@@ -65,7 +66,7 @@ impl Default for TemplateApp {
         let sim = Sim::new(cfg, state);
         let img = ImageViewWidget::default();
 
-        Self { sim, img }
+        Self { sim, img, viewed_eigstate: 0 }
     }
 }
 
@@ -81,12 +82,13 @@ impl eframe::App for TemplateApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.sim.step();
 
-        let eigstate = &self.sim.artefacts.eigenstates[0];
+        let eigstate = &self.sim.artefacts.eigenstates[self.viewed_eigstate];
         //let sum: f64 = eigstate.data().iter().map(|x| x.abs()).sum();
         //dbg!(sum);
 
+        let w = eigstate.data().len();
         let image = eigstate.map(|v| {
-            let v = *v as f32;
+            let v = *v as f32 * (w as f32).sqrt();
             if v > 0. {
                 [v, 0.1 * v, 0.0, 0.0]
             } else {
@@ -99,6 +101,12 @@ impl eframe::App for TemplateApp {
 
         CentralPanel::default().show(ctx, |ui| {
             self.img.show(ui);
+        });
+
+        SidePanel::left("left_panel").show(ctx, |ui| {
+            let energies = &self.sim.artefacts.energies;
+            ui.add(DragValue::new(&mut self.viewed_eigstate).clamp_range(0..=energies.len()-1));
+            ui.label(format!("Energy: {}", energies[self.viewed_eigstate]));
         });
     }
 }
