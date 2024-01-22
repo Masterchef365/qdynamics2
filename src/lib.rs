@@ -54,7 +54,7 @@ fn initial_cfg() -> SimConfig {
         v0: -1.,
         v_soft: 0.1,
         v_scale: 1.,
-        n_states: N.pow(2),
+        n_states: 3,
         num_solver_iters: 100,
     }
 }
