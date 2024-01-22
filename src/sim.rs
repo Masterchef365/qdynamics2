@@ -1,7 +1,8 @@
 use std::time::Instant;
 
 use eigenvalues::{
-    davidson::Davidson, matrix_operations::MatrixOperations, DavidsonCorrection, SpectrumTarget, lanczos::HermitianLanczos,
+    davidson::Davidson, lanczos::HermitianLanczos, matrix_operations::MatrixOperations,
+    DavidsonCorrection, SpectrumTarget,
 };
 use nalgebra::{
     ComplexField, DMatrix, DMatrixSlice, DVector, DVectorSlice, MatrixN, Point2, Vector2,
@@ -157,7 +158,10 @@ fn grid_positions(cfg: &SimConfig) -> Array2D<Point2<f64>> {
 
 /// Returns false if out of bounds with the given width
 fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
-    Some((pt.x.rem_euclid(width) as usize, pt.y.rem_euclid(width) as usize))
+    Some((
+        pt.x.rem_euclid(width) as usize,
+        pt.y.rem_euclid(width) as usize,
+    ))
 }
 
 /*
@@ -227,8 +231,7 @@ impl MatrixOperations for HamiltonianObject {
                     (Vector2::new(1, 0), 1.0),
                     (Vector2::new(0, 1), 1.0),
                     (Vector2::new(0, -1), 1.0),
-                    (Vector2::new(0, 0), self.potential[center_grid_coord] -4.0),
-
+                    (Vector2::new(0, 0), self.potential[center_grid_coord] - 4.0),
                     //(Vector2::new(0, 0), 1.0),
                 ] {
                     if let Some(grid_coord) =
@@ -282,21 +285,22 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     .unwrap();
     let time = start.elapsed().as_secs_f64();
 
-    let sel = 0;
+    let sel_idx = 0;
 
-    let first_energy = eig.eigenvalues[sel];
-    let first_energy_eigenstate = eig.eigenvectors.column(sel);
-    let hpsi = HamiltonianObject::from_potential(potential, cfg).matrix_vector_prod(first_energy_eigenstate);
-    let expect = first_energy * first_energy_eigenstate;
+    // Calculate selected eigenstate and energy
+    let sel_energy = eig.eigenvalues[sel_idx];
+    let sel_energy_eigenstate: DVector<f64> = eig.eigenvectors.row(sel_idx).transpose().into();
+    let hpsi = HamiltonianObject::from_potential(potential, cfg)
+        .matrix_vector_prod((&sel_energy_eigenstate).into());
+    dbg!(hpsi.shape());
+    let expect = sel_energy * sel_energy_eigenstate;
 
     let percent_err = (hpsi - &expect).abs().component_div(&expect.abs());
     let avg_err = percent_err.sum() / percent_err.len() as f64;
 
-
     dbg!(percent_err);
     dbg!(avg_err);
-    dbg!(&eig.eigenvalues[sel]);
-
+    dbg!(&eig.eigenvalues[sel_idx]);
 
     // Ensure there is no complex component of energy nor eigenstate
     //dbg!(&eig.eigenvalues);
