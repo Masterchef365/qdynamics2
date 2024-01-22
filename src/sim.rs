@@ -8,6 +8,7 @@ use nalgebra::{
     ComplexField, DMatrix, DMatrixSlice, DVector, DVectorSlice, MatrixN, Point2, SymmetricEigen,
     Vector2,
 };
+use ndarray_linalg::lobpcg::LobpcgResult;
 use num_complex::{Complex64, ComplexFloat};
 
 use crate::array2d::Array2D;
@@ -311,8 +312,12 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
         EigenAlgorithm::LobPcg => {
             let x = ndarray_linalg::generate::random((ham.ncols(), cfg.n_states));
 
-            let result = ndarray_linalg::lobpcg::lobpcg(
-                |vects| ham.matrix_matrix_prod(&vects.into()).into(),
+            let result = ndarray_linalg::lobpcg::lobpcg::<f64, _, _>(
+                |vects| {
+                    let vects: DMatrix<f64> = ndarray_to_nalgebra(vects.to_owned());
+                    let prod = ham.matrix_matrix_prod((&vects).into());
+                    nalgebra_to_ndarray(prod)
+                },
                 x,
                 |_| (),
                 None,
@@ -321,7 +326,18 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
                 ndarray_linalg::lobpcg::TruncatedOrder::Smallest,
             );
 
-            todo!();
+            match result {
+                LobpcgResult::Ok(vals, vects, norm) => {
+                    eigvals = vals.as_slice().unwrap().to_vec();
+
+                    eigvects = vects
+                        .columns()
+                        .into_iter()
+                        .map(|col| nalgebra_to_array2d((&ndarray_to_nalgebra_vect(col.to_owned())).into(), cfg))
+                        .collect();
+                }
+                _ => todo!(),
+            }
         }
     };
     let time = start.elapsed().as_secs_f64();
@@ -364,6 +380,22 @@ let kinetic_energy: f64 = state
 todo!()
 }
 */
+
+fn nalgebra_to_ndarray(vect: nalgebra::DMatrix<f64>) -> ndarray::Array2<f64> {
+    ndarray::Array2::from_shape_vec(vect.shape(), vect.as_slice().to_vec()).unwrap()
+}
+
+fn ndarray_to_nalgebra(vect: ndarray::Array2<f64>) -> nalgebra::DMatrix<f64> {
+    DMatrix::from_vec(
+        vect.nrows(),
+        vect.ncols(),
+        vect.as_slice().unwrap().to_vec(),
+    )
+}
+
+fn ndarray_to_nalgebra_vect(vect: ndarray::Array1<f64>) -> nalgebra::DVector<f64> {
+    DVector::from_vec(vect.as_slice().unwrap().to_vec())
+}
 
 impl Sim {
     pub fn step(&mut self) {}
