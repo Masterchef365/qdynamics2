@@ -17,6 +17,12 @@ const NUCLEAR_MASS: f64 = 1.0;
 const ELECTRON_MASS: f64 = 1.0;
 const HBAR: f64 = 1.0;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum EigenAlgorithm {
+    Nalgebra,
+    Lanczos,
+}
+
 #[derive(Clone)]
 pub struct SimConfig {
     // Options which should NOT change during runtime
@@ -37,6 +43,7 @@ pub struct SimConfig {
     pub n_states: usize,
     pub num_solver_iters: usize,
     // /// Mass of each nucleus
+    pub eig_algo: EigenAlgorithm,
 }
 
 pub struct Nucleus {
@@ -271,8 +278,35 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
 
     // Calculate energy eigenstates
     let start = Instant::now();
-    let eig = SymmetricEigen::new(ham_matrix.clone());
-    //let eig = HermitianLanczos::new(ham_matrix.clone(), cfg.n_states, SpectrumTarget::Lowest).unwrap();
+
+    let (eigvects, eigvals);
+
+    match cfg.eig_algo {
+        EigenAlgorithm::Nalgebra => {
+            let eig = SymmetricEigen::new(ham_matrix.clone());
+
+            eigvects = eig
+                .eigenvectors
+                .column_iter()
+                .map(|col| nalgebra_to_array2d(col, cfg))
+                .collect();
+
+            eigvals = eig.eigenvalues.as_slice().to_vec();
+        }
+        EigenAlgorithm::Lanczos => {
+            let eig =
+                HermitianLanczos::new(ham_matrix.clone(), cfg.n_states, SpectrumTarget::Lowest)
+                    .unwrap();
+
+            eigvects = eig
+                .eigenvectors
+                .column_iter()
+                .map(|col| nalgebra_to_array2d(col, cfg))
+                .collect();
+
+            eigvals = eig.eigenvalues.as_slice().to_vec();
+        }
+    };
     let time = start.elapsed().as_secs_f64();
     dbg!(time);
 
@@ -292,15 +326,6 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     dbg!(avg_err);
     dbg!(&eig.eigenvalues[sel_idx]);
     */
-
-    let eigvects = eig
-        .eigenvectors
-        .column_iter()
-        .map(|col| nalgebra_to_array2d(col, cfg))
-        .collect();
-
-    let eigvals = eig.eigenvalues.as_slice().to_vec();
-
     (eigvals, eigvects)
 }
 

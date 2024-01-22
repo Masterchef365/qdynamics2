@@ -1,10 +1,10 @@
-use egui::{CentralPanel, DragValue, SidePanel};
+use egui::{CentralPanel, DragValue, SidePanel, SelectableLabel};
 use image_view::{array_to_imagedata, ImageViewWidget};
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
 use nalgebra::{Point2, Vector2};
-use qdynamics::sim::{Nucleus, Sim, SimConfig, SimState};
+use qdynamics::sim::{EigenAlgorithm, Nucleus, Sim, SimConfig, SimState};
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
@@ -53,6 +53,7 @@ mod image_view;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 pub struct TemplateApp {
+    edit_cfg: SimConfig,
     sim: Sim,
     img: ImageViewWidget,
     viewed_eigstate: usize,
@@ -64,13 +65,14 @@ impl Default for TemplateApp {
         let cfg = initial_cfg();
         let state = initial_state(&cfg);
 
-        let sim = Sim::new(cfg, state);
+        let sim = Sim::new(cfg.clone(), state);
         let img = ImageViewWidget::default();
 
         Self {
             sim,
             img,
             viewed_eigstate: 0,
+            edit_cfg: cfg,
             show_probability: false,
         }
     }
@@ -93,8 +95,10 @@ impl eframe::App for TemplateApp {
         self.sim.step();
 
         let mut needs_update = false;
+        let mut needs_recalculate = false;
 
         SidePanel::left("left_panel").show(ctx, |ui| {
+            ui.strong("View");
             let energies = &self.sim.artefacts.energies;
             needs_update |= ui
                 .add(DragValue::new(&mut self.viewed_eigstate).clamp_range(0..=energies.len() - 1))
@@ -103,9 +107,43 @@ impl eframe::App for TemplateApp {
             needs_update |= ui
                 .checkbox(&mut self.show_probability, "Show probability")
                 .changed();
+
+            ui.separator();
+            ui.strong("Config");
+            needs_recalculate |= ui
+                .add(
+                    DragValue::new(&mut self.edit_cfg.v0)
+                        .speed(1e-1)
+                        .prefix("V0: "),
+                )
+                .changed();
+
+            needs_recalculate |= ui
+                .add(
+                    DragValue::new(&mut self.edit_cfg.grid_width)
+                        .speed(1e-1)
+                        .prefix("Grid size: "),
+                )
+                .changed();
+
+            needs_recalculate |= ui
+                .add(
+                    DragValue::new(&mut self.edit_cfg.n_states)
+                        .speed(1e-1)
+                        .prefix("Max states: "),
+                )
+                .changed();
+
+
+            ui.horizontal(|ui| {
+                needs_recalculate |= ui.selectable_value(&mut self.edit_cfg.eig_algo, EigenAlgorithm::Lanczos, "Lanczos").changed();
+                needs_recalculate |= ui.selectable_value(&mut self.edit_cfg.eig_algo, EigenAlgorithm::Nalgebra, "Nalgebra").changed();
+            });
         });
 
-        if needs_update {
+        if needs_recalculate {
+            self.recalculate(ctx);
+        } else if needs_update {
             self.update_view(ctx);
         }
 
@@ -116,6 +154,11 @@ impl eframe::App for TemplateApp {
 }
 
 impl TemplateApp {
+    fn recalculate(&mut self, ctx: &egui::Context) {
+        self.sim = Sim::new(self.edit_cfg.clone(), initial_state(&self.edit_cfg));
+        self.update_view(ctx);
+    }
+
     fn update_view(&mut self, ctx: &egui::Context) {
         let eigstate = &self.sim.artefacts.eigenstates[self.viewed_eigstate];
 
@@ -123,8 +166,10 @@ impl TemplateApp {
 
         let image;
         if self.show_probability {
+            let sum: f64 = eigstate.data().iter().map(|v| v.powi(2)).sum();
             image = eigstate.map(|v| {
-                let v = v.powi(2) as f32 * (w as f32).sqrt();
+                let v = (v.powi(2) / sum) as f32;
+                let v = 100.0 * v;
                 [v, v, v, 0.0]
             });
         } else {
@@ -166,5 +211,6 @@ fn initial_cfg() -> SimConfig {
         v_scale: 1.,
         n_states: 3,
         num_solver_iters: 100,
+        eig_algo: EigenAlgorithm::Nalgebra,
     }
 }
