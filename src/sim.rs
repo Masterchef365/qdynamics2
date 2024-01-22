@@ -46,6 +46,7 @@ pub struct SimConfig {
     pub eig_algo: EigenAlgorithm,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct Nucleus {
     // pub mass: f64,
     /// Velocity
@@ -54,6 +55,7 @@ pub struct Nucleus {
     pub pos: Point2<f64>,
 }
 
+#[derive(Clone, Debug)]
 pub struct SimState {
     /// Index of the quantum energy level (lambda)
     pub energy_level: usize,
@@ -363,5 +365,11 @@ mod tests {
         let nalg = DVector::from_iterator(w, (0..w).map(|i| i as f64));
         let arr = nalgebra_to_array2d((&nalg).into(), &initial_cfg());
         assert_eq!(nalg, array2d_to_nalgebra(&arr));
+    }
+}
+
+impl Default for Nucleus {
+    fn default() -> Self {
+        Self { vel: Vector2::zeros(), pos: Point2::origin() }
     }
 }

@@ -1,4 +1,4 @@
-use egui::{CentralPanel, DragValue, SelectableLabel, SidePanel};
+use egui::{CentralPanel, DragValue, SelectableLabel, SidePanel, Ui, Response};
 use image_view::{array_to_imagedata, ImageViewWidget};
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
@@ -54,6 +54,7 @@ mod image_view;
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 pub struct TemplateApp {
     edit_cfg: SimConfig,
+    edit_initial_state: SimState,
     sim: Sim,
     img: ImageViewWidget,
     viewed_eigstate: usize,
@@ -63,12 +64,13 @@ pub struct TemplateApp {
 impl Default for TemplateApp {
     fn default() -> Self {
         let cfg = initial_cfg();
-        let state = initial_state(&cfg);
+        let edit_state = initial_state(&cfg);
 
-        let sim = Sim::new(cfg.clone(), state);
+        let sim = Sim::new(cfg.clone(), edit_state.clone());
         let img = ImageViewWidget::default();
 
         Self {
+            edit_initial_state: edit_state,
             sim,
             img,
             viewed_eigstate: 0,
@@ -150,6 +152,11 @@ impl eframe::App for TemplateApp {
                     )
                     .clicked();
             });
+
+
+            ui.separator();
+            ui.strong("Nuclei");
+            needs_recalculate |= sim_state_editor(ui, &mut self.edit_initial_state);
         });
 
         if needs_recalculate {
@@ -166,7 +173,7 @@ impl eframe::App for TemplateApp {
 
 impl TemplateApp {
     fn recalculate(&mut self, ctx: &egui::Context) {
-        self.sim = Sim::new(self.edit_cfg.clone(), initial_state(&self.edit_cfg));
+        self.sim = Sim::new(self.edit_cfg.clone(), self.edit_initial_state.clone());
         self.update_view(ctx);
     }
 
@@ -227,4 +234,34 @@ fn initial_cfg() -> SimConfig {
         num_solver_iters: 100,
         eig_algo: EigenAlgorithm::Nalgebra,
     }
+}
+
+fn sim_state_editor(ui: &mut Ui, state: &mut SimState) -> bool {
+    let mut needs_recalculate = false;
+
+    // Just nuclei for now
+    let mut delete = None;
+    for (idx, nucleus) in state.nuclei.iter_mut().enumerate() {
+        ui.horizontal(|ui| {
+            needs_recalculate |= ui.add(DragValue::new(&mut nucleus.pos.x).prefix("x: ").speed(1e-2)).changed();
+            needs_recalculate |= ui.add(DragValue::new(&mut nucleus.pos.y).prefix("y: ").speed(1e-2)).changed();
+
+            if ui.button("Delete").clicked() {
+                delete = Some(idx);
+                needs_recalculate = true;
+            }
+        });
+    }
+
+    if let Some(idx) = delete {
+        state.nuclei.remove(idx);
+        needs_recalculate = true;
+    }
+
+    if ui.button("Add").clicked() {
+        state.nuclei.push(Nucleus::default());
+        needs_recalculate = true;
+    }
+
+    needs_recalculate
 }
