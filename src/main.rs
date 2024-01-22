@@ -160,6 +160,13 @@ impl eframe::App for TemplateApp {
                 needs_recalculate |= ui
                     .selectable_value(
                         &mut self.edit_cfg.eig_algo,
+                        EigenAlgorithm::LobPcg,
+                        "LobPcg",
+                    )
+                    .clicked();
+                needs_recalculate |= ui
+                    .selectable_value(
+                        &mut self.edit_cfg.eig_algo,
                         EigenAlgorithm::Nalgebra,
                         "Nalgebra",
                     )

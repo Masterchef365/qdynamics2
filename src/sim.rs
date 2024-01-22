@@ -21,6 +21,7 @@ const HBAR: f64 = 1.0;
 pub enum EigenAlgorithm {
     Nalgebra,
     Lanczos,
+    LobPcg,
 }
 
 #[derive(Clone)]
@@ -307,6 +308,21 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
 
             eigvals = eig.eigenvalues.as_slice().to_vec();
         }
+        EigenAlgorithm::LobPcg => {
+            let x = ndarray_linalg::generate::random((ham.ncols(), cfg.n_states));
+
+            let result = ndarray_linalg::lobpcg::lobpcg(
+                |vects| ham.matrix_matrix_prod(&vects.into()).into(),
+                x,
+                |_| (),
+                None,
+                1e-3,
+                1000,
+                ndarray_linalg::lobpcg::TruncatedOrder::Smallest,
+            );
+
+            todo!();
+        }
     };
     let time = start.elapsed().as_secs_f64();
     dbg!(time);
@@ -370,6 +386,9 @@ mod tests {
 
 impl Default for Nucleus {
     fn default() -> Self {
-        Self { vel: Vector2::zeros(), pos: Point2::origin() }
+        Self {
+            vel: Vector2::zeros(),
+            pos: Point2::origin(),
+        }
     }
 }
