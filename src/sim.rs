@@ -327,7 +327,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
             );
 
             match result {
-                LobpcgResult::Ok(vals, vects, norm) => {
+                LobpcgResult::Ok(vals, vects, norm) | LobpcgResult::Err(vals, vects, norm, _) => {
                     eigvals = vals.as_slice().unwrap().to_vec();
 
                     eigvects = vects
@@ -391,11 +391,7 @@ fn nalgebra_to_ndarray(vect: nalgebra::DMatrix<f64>) -> ndarray::Array2<f64> {
 }
 
 fn ndarray_to_nalgebra(vect: ndarray::Array2<f64>) -> nalgebra::DMatrix<f64> {
-    DMatrix::from_vec(
-        vect.nrows(),
-        vect.ncols(),
-        vect.as_slice().unwrap().to_vec(),
-    )
+    DMatrix::from_iterator(vect.nrows(), vect.ncols(), vect.iter().copied())
 }
 
 fn ndarray_to_nalgebra_vect(vect: ndarray::Array1<f64>) -> nalgebra::DVector<f64> {
