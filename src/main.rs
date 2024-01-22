@@ -112,7 +112,7 @@ impl TemplateApp {
             if v > 0. {
                 [v, 0.1 * v, 0.0, 0.0]
             } else {
-                [0.0, 0.1 * v, v, 0.0]
+                [0.0, 0.1 * -v, -v, 0.0]
             }
         });
         let image = array_to_imagedata(&image);
