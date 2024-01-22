@@ -251,8 +251,13 @@ impl MatrixOperations for HamiltonianObject {
         array2d_to_nalgebra(&output)
     }
 
-    fn matrix_matrix_prod(&self, _mtx: DMatrixSlice<f64>) -> DMatrix<f64> {
-        unimplemented!()
+    // NOTE: This operation is not in the hot path so it is NOT optimized!
+    fn matrix_matrix_prod(&self, mtx: DMatrixSlice<f64>) -> DMatrix<f64> {
+        let mut out_cols = vec![];
+        for in_column in mtx.column_iter() {
+            out_cols.push(self.matrix_vector_prod(in_column));
+        }
+        DMatrix::from_columns(&out_cols)
     }
 }
 
