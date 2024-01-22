@@ -243,8 +243,8 @@ fn sim_state_editor(ui: &mut Ui, state: &mut SimState) -> bool {
     let mut delete = None;
     for (idx, nucleus) in state.nuclei.iter_mut().enumerate() {
         ui.horizontal(|ui| {
-            needs_recalculate |= ui.add(DragValue::new(&mut nucleus.pos.x).prefix("x: ").speed(1e-2)).changed();
-            needs_recalculate |= ui.add(DragValue::new(&mut nucleus.pos.y).prefix("y: ").speed(1e-2)).changed();
+            needs_recalculate |= ui.add(DragValue::new(&mut nucleus.pos.x).prefix("x: ").speed(1e-1)).changed();
+            needs_recalculate |= ui.add(DragValue::new(&mut nucleus.pos.y).prefix("y: ").speed(1e-1)).changed();
 
             if ui.button("Delete").clicked() {
                 delete = Some(idx);
