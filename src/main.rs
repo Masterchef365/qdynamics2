@@ -1,4 +1,4 @@
-use egui::{CentralPanel, DragValue, SidePanel, SelectableLabel};
+use egui::{CentralPanel, DragValue, SelectableLabel, SidePanel};
 use image_view::{array_to_imagedata, ImageViewWidget};
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
@@ -134,10 +134,21 @@ impl eframe::App for TemplateApp {
                 )
                 .changed();
 
-
             ui.horizontal(|ui| {
-                needs_recalculate |= ui.selectable_value(&mut self.edit_cfg.eig_algo, EigenAlgorithm::Lanczos, "Lanczos").changed();
-                needs_recalculate |= ui.selectable_value(&mut self.edit_cfg.eig_algo, EigenAlgorithm::Nalgebra, "Nalgebra").changed();
+                needs_recalculate |= ui
+                    .selectable_value(
+                        &mut self.edit_cfg.eig_algo,
+                        EigenAlgorithm::Lanczos,
+                        "Lanczos",
+                    )
+                    .clicked();
+                needs_recalculate |= ui
+                    .selectable_value(
+                        &mut self.edit_cfg.eig_algo,
+                        EigenAlgorithm::Nalgebra,
+                        "Nalgebra",
+                    )
+                    .clicked();
             });
         });
 
@@ -160,6 +171,9 @@ impl TemplateApp {
     }
 
     fn update_view(&mut self, ctx: &egui::Context) {
+        self.viewed_eigstate = self
+            .viewed_eigstate
+            .min(self.sim.artefacts.energies.len() - 1);
         let eigstate = &self.sim.artefacts.eigenstates[self.viewed_eigstate];
 
         let w = eigstate.data().len();
