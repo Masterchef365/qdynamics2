@@ -281,44 +281,19 @@ flat_output_vect.copy_from_slice(output.data());
 fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, Vec<Array2D<f64>>) {
     assert_eq!(cfg.grid_width, potential.width());
 
-    // Commutator test:
+    // Build the Hamiltonian
     let ham = HamiltonianObject::from_potential(potential, cfg);
 
-    let ident = DMatrix::identity(potential.data().len(), potential.data().len());
-
-    let ham_matrix = ham.matrix_matrix_prod((&ident).into());
-
-    //println!("{}", ham_matrix);
-
-    for col in 0..ham_matrix.ncols() {
-        for row in 0..ham_matrix.ncols() {
-            let a = ham_matrix[(row, col)];
-            let b = ham_matrix[(col, row)];
-            let diff = a - b;
-            if diff.abs() > 0.00001 {
-                panic!("{row} {col} {a} - {b} = {diff}");
-            }
-        }
-    }
-
-    todo!("It worked!");
-
+    // Calculate energy eigenstates
     let start = Instant::now();
-    let eig = HermitianLanczos::new(
-        HamiltonianObject::from_potential(potential, cfg),
-        cfg.n_states,
-        SpectrumTarget::Lowest,
-    )
-    .unwrap();
+    let eig = HermitianLanczos::new(ham.clone(), cfg.n_states, SpectrumTarget::Lowest).unwrap();
     let time = start.elapsed().as_secs_f64();
 
+    // DEBUGGGING
     let sel_idx = 0;
-
-    // Calculate selected eigenstate and energy
     let sel_energy = eig.eigenvalues[sel_idx];
     let sel_energy_eigenstate = eig.eigenvectors.column(sel_idx);
-    let hpsi = HamiltonianObject::from_potential(potential, cfg)
-        .matrix_vector_prod(sel_energy_eigenstate);
+    let hpsi = ham.matrix_vector_prod(sel_energy_eigenstate);
 
     let expect = sel_energy * sel_energy_eigenstate;
 
@@ -333,7 +308,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     //dbg!(&eig.eigenvalues);
     //dbg!(&eig.eigenvectors);
 
-    //dbg!(time);
+    dbg!(time);
     /*
     dbg!(eigenstates.shape());
 
@@ -372,4 +347,19 @@ todo!()
 
 impl Sim {
     pub fn step(&mut self) {}
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::initial_cfg;
+
+    use super::*;
+
+    #[test]
+    fn roundtrip_nalgebra_to_array() {
+        let w = 20;
+        let nalg = DVector::from_iterator(w, (0..w).map(|i| i as f64));
+        let arr = nalgebra_to_array2d((&nalg).into(), &initial_cfg());
+        assert_eq!(nalg, array2d_to_nalgebra(&arr));
+    }
 }
