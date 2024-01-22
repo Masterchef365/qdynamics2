@@ -5,7 +5,8 @@ use eigenvalues::{
     DavidsonCorrection, SpectrumTarget,
 };
 use nalgebra::{
-    ComplexField, DMatrix, DMatrixSlice, DVector, DVectorSlice, MatrixN, Point2, Vector2, SymmetricEigen,
+    ComplexField, DMatrix, DMatrixSlice, DVector, DVectorSlice, MatrixN, Point2, SymmetricEigen,
+    Vector2,
 };
 use num_complex::{Complex64, ComplexFloat};
 
@@ -89,29 +90,11 @@ fn calculate_artefacts(cfg: &SimConfig, state: &SimState) -> SimArtefacts {
     let potential = calculate_potential(cfg, state);
     let (energies, eigenstates) = solve_schrödinger(cfg, &potential);
 
-    /*
-    let psi = eigenstates[0].map(|v| *v as f64);
-    let h_psi = hamiltonian(cfg, &psi, &potential);
-    let percent_error: Vec<f64> = h_psi
-        .data()
-        .iter()
-        .zip(psi.data())
-        .zip(&energies)
-        .map(|((hpsi, psi), energy)| {
-            (hpsi - *energy as f64 * psi).abs() / (*energy as f64 * psi).abs()
-        })
-        .collect();
-
-    dbg!(percent_error);
-    panic!();
-
     SimArtefacts {
         eigenstates,
         energies,
         potential,
     }
-    */
-    todo!()
 }
 
 /// Calculate the electric potential in the position basis
@@ -294,7 +277,9 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     let eig = SymmetricEigen::new(ham_matrix.clone());
     //let eig = HermitianLanczos::new(ham_matrix.clone(), cfg.n_states, SpectrumTarget::Lowest).unwrap();
     let time = start.elapsed().as_secs_f64();
+    dbg!(time);
 
+    /*
     // DEBUGGGING
     let sel_idx = 0;
     let sel_energy = eig.eigenvalues[sel_idx];
@@ -309,34 +294,17 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     //dbg!(percent_err);
     dbg!(avg_err);
     dbg!(&eig.eigenvalues[sel_idx]);
-
-    // Ensure there is no complex component of energy nor eigenstate
-    //dbg!(&eig.eigenvalues);
-    //dbg!(&eig.eigenvectors);
-
-    dbg!(time);
-    /*
-    dbg!(eigenstates.shape());
-
-    // Yeesh
-    let thresh = 1.0;
-    assert!(energies.iter().all(|energy| energy.im.abs() < thresh));
-    assert!(eigenstates.iter().all(|entry| entry.im.abs() < thresh));
-
-    let energies: Vec<f64> = energies.iter().map(|energy| energy.re as f64).collect();
-
-    // TODO: Is outer_iter really the right one?
-    let eigenstates: Vec<Array2D<f64>> = eigenstates
-    .axis_iter(ndarray::Axis(1))
-    .map(|eigenstate| {
-    let eigenstate: Vec<f64> = eigenstate.iter().map(|entry| entry.re as f64).collect();
-    Array2D::from_array(cfg.grid_width, eigenstate)
-    })
-    .collect();
-
-    (energies, eigenstates)
     */
-    todo!()
+
+    let eigvects = eig
+        .eigenvectors
+        .column_iter()
+        .map(|col| nalgebra_to_array2d(col, cfg))
+        .collect();
+
+    let eigvals = eig.eigenvalues.as_slice().to_vec();
+
+    (eigvals, eigvects)
 }
 
 /*
