@@ -279,7 +279,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     let start = Instant::now();
     let eig = HermitianLanczos::new(
         HamiltonianObject::from_potential(potential, cfg),
-        1,
+        cfg.n_states,
         SpectrumTarget::Lowest,
     )
     .unwrap();
@@ -289,10 +289,10 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
 
     // Calculate selected eigenstate and energy
     let sel_energy = eig.eigenvalues[sel_idx];
-    let sel_energy_eigenstate: DVector<f64> = eig.eigenvectors.row(sel_idx).transpose().into();
+    let sel_energy_eigenstate = eig.eigenvectors.column(sel_idx);
     let hpsi = HamiltonianObject::from_potential(potential, cfg)
-        .matrix_vector_prod((&sel_energy_eigenstate).into());
-    dbg!(hpsi.shape());
+        .matrix_vector_prod(sel_energy_eigenstate);
+
     let expect = sel_energy * sel_energy_eigenstate;
 
     let percent_err = (hpsi - &expect).abs().component_div(&expect.abs());
