@@ -315,6 +315,9 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
             let result = ndarray_linalg::lobpcg::lobpcg::<f64, _, _>(
                 |vects| {
                     let vects: DMatrix<f64> = ndarray_to_nalgebra(vects.to_owned());
+                    eprintln!();
+                    eprintln!();
+                    eprintln!();
                     let prod = ham.matrix_matrix_prod((&vects).into());
                     nalgebra_to_ndarray(prod)
                 },
@@ -387,11 +390,11 @@ todo!()
 */
 
 fn nalgebra_to_ndarray(vect: nalgebra::DMatrix<f64>) -> ndarray::Array2<f64> {
-    ndarray::Array2::from_shape_vec(vect.shape(), vect.as_slice().to_vec()).unwrap()
+    ndarray::Array2::from_shape_vec(vect.shape(), vect.transpose().as_slice().to_vec()).unwrap()
 }
 
 fn ndarray_to_nalgebra(vect: ndarray::Array2<f64>) -> nalgebra::DMatrix<f64> {
-    DMatrix::from_iterator(vect.nrows(), vect.ncols(), vect.iter().copied())
+    DMatrix::from_iterator(vect.nrows(), vect.ncols(), vect.t().iter().copied())
 }
 
 fn ndarray_to_nalgebra_vect(vect: ndarray::Array1<f64>) -> nalgebra::DVector<f64> {
