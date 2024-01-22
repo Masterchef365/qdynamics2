@@ -110,9 +110,9 @@ impl TemplateApp {
         let image = eigstate.map(|v| {
             let v = *v as f32 * (w as f32).sqrt();
             if v > 0. {
-                [v, 0.1 * v, 0.0, 0.0]
+                [v, 0.3 * v, 0.0, 0.0]
             } else {
-                [0.0, 0.1 * -v, -v, 0.0]
+                [0.0, 0.3 * -v, -v, 0.0]
             }
         });
         let image = array_to_imagedata(&image);
