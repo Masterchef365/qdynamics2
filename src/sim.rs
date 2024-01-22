@@ -273,16 +273,17 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     // Build the Hamiltonian
     let ham = HamiltonianObject::from_potential(potential, cfg);
 
-    let ident = DMatrix::identity(potential.data().len(), potential.data().len());
-    let ham_matrix = ham.matrix_matrix_prod((&ident).into());
-
     // Calculate energy eigenstates
     let start = Instant::now();
 
-    let (eigvects, eigvals);
+    let mut eigvects: Vec<Array2D<f64>>;
+    let mut eigvals: Vec<f64>;
 
     match cfg.eig_algo {
         EigenAlgorithm::Nalgebra => {
+            let ident = DMatrix::identity(potential.data().len(), potential.data().len());
+            let ham_matrix = ham.matrix_matrix_prod((&ident).into());
+
             let eig = SymmetricEigen::new(ham_matrix.clone());
 
             eigvects = eig
@@ -294,9 +295,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
             eigvals = eig.eigenvalues.as_slice().to_vec();
         }
         EigenAlgorithm::Lanczos => {
-            let eig =
-                HermitianLanczos::new(ham_matrix.clone(), cfg.n_states, SpectrumTarget::Lowest)
-                    .unwrap();
+            let eig = HermitianLanczos::new(ham, cfg.n_states, SpectrumTarget::Target(0.0)).unwrap();
 
             eigvects = eig
                 .eigenvectors
@@ -309,6 +308,13 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     };
     let time = start.elapsed().as_secs_f64();
     dbg!(time);
+
+    // Sort by energy
+    let mut indices: Vec<_> = eigvals.iter().copied().zip(eigvects).collect();
+    indices.sort_by(|a, b| a.0.total_cmp(&b.0));
+
+    indices.into_iter().unzip()
+    //let (energies, eigvects) = indices.iter().map(|((idx, val), eigve| *val).collect();
 
     /*
     // DEBUGGGING
@@ -326,7 +332,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     dbg!(avg_err);
     dbg!(&eig.eigenvalues[sel_idx]);
     */
-    (eigvals, eigvects)
+    //(eigvals, eigvects)
 }
 
 /*

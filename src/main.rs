@@ -223,7 +223,7 @@ fn initial_cfg() -> SimConfig {
         v0: -1.,
         v_soft: 0.1,
         v_scale: 1.,
-        n_states: 3,
+        n_states: 10,
         num_solver_iters: 100,
         eig_algo: EigenAlgorithm::Nalgebra,
     }
