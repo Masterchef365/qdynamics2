@@ -137,6 +137,22 @@ impl eframe::App for TemplateApp {
                 )
                 .changed();
 
+            needs_recalculate |= ui
+                .add(
+                    DragValue::new(&mut self.edit_cfg.tolerance)
+                        .speed(1e-1)
+                        .prefix("Tolerance: "),
+                )
+                .changed();
+
+            needs_recalculate |= ui
+                .add(
+                    DragValue::new(&mut self.edit_cfg.num_solver_iters)
+                        .speed(1e-1)
+                        .prefix("Max iters: "),
+                )
+                .changed();
+
             ui.horizontal(|ui| {
                 needs_recalculate |= ui
                 .add(
@@ -251,8 +267,9 @@ fn initial_cfg() -> SimConfig {
         v_soft: 0.1,
         v_scale: 1.,
         n_states: 10,
-        num_solver_iters: 100,
+        num_solver_iters: 1000,
         eig_algo: EigenAlgorithm::Nalgebra,
+        tolerance: 1e-3,
     }
 }
 

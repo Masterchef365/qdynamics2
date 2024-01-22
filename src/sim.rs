@@ -46,6 +46,7 @@ pub struct SimConfig {
     pub num_solver_iters: usize,
     // /// Mass of each nucleus
     pub eig_algo: EigenAlgorithm,
+    pub tolerance: f32,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -315,22 +316,19 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
             let result = ndarray_linalg::lobpcg::lobpcg::<f64, _, _>(
                 |vects| {
                     let vects: DMatrix<f64> = ndarray_to_nalgebra(vects.to_owned());
-                    eprintln!();
-                    eprintln!();
-                    eprintln!();
                     let prod = ham.matrix_matrix_prod((&vects).into());
                     nalgebra_to_ndarray(prod)
                 },
                 x,
                 |_| (),
                 None,
-                1e-3,
-                1000,
+                cfg.tolerance,
+                cfg.num_solver_iters,
                 ndarray_linalg::lobpcg::TruncatedOrder::Smallest,
             );
 
             match result {
-                LobpcgResult::Ok(vals, vects, norm) | LobpcgResult::Err(vals, vects, norm, _) => {
+                LobpcgResult::Ok(vals, vects, _norm) | LobpcgResult::Err(vals, vects, _norm, _) => {
                     eigvals = vals.as_slice().unwrap().to_vec();
 
                     eigvects = vects
