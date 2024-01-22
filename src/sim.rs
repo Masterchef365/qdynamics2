@@ -286,18 +286,21 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     // Build the Hamiltonian
     let ham = HamiltonianObject::from_potential(potential, cfg);
 
+    let ident = DMatrix::identity(potential.data().len(), potential.data().len());
+    let ham_matrix = ham.matrix_matrix_prod((&ident).into());
+
     // Calculate energy eigenstates
     let start = Instant::now();
-    let eig = HermitianLanczos::new(ham.clone(), cfg.n_states, SpectrumTarget::Lowest).unwrap();
+    let eig = HermitianLanczos::new(ham_matrix.clone(), cfg.n_states, SpectrumTarget::Lowest).unwrap();
     let time = start.elapsed().as_secs_f64();
 
     // DEBUGGGING
     let sel_idx = 0;
     let sel_energy = eig.eigenvalues[sel_idx];
     let sel_energy_eigenstate = eig.eigenvectors.column(sel_idx);
-    let hpsi = ham.matrix_vector_prod(sel_energy_eigenstate);
+    let hpsi = &ham_matrix * sel_energy_eigenstate;
 
-    let expect = sel_energy * sel_energy_eigenstate;
+   let expect = sel_energy * sel_energy_eigenstate;
 
     let percent_err = (hpsi - &expect).abs().component_div(&expect.abs());
     let avg_err = percent_err.sum() / percent_err.len() as f64;
