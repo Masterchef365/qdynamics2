@@ -40,20 +40,21 @@ fn initial_state(cfg: &SimConfig) -> SimState {
             .map(|n| if n == 0 { 1.0 } else { 0.0 })
             .collect(),
         nuclei: vec![Nucleus {
-            pos: Point2::new(cfg.grid_width as f32 / 2., cfg.grid_width as f32 / 2.),
+            pos: Point2::new(cfg.grid_width as f64 / 2., cfg.grid_width as f64 / 2.),
             vel: Vector2::zeros(),
         }],
     }
 }
 
+const N: usize = 20;
 fn initial_cfg() -> SimConfig {
     SimConfig {
         dx: 1.0,
-        grid_width: 20,
+        grid_width: N,
         v0: -1.,
         v_soft: 0.1,
         v_scale: 1.,
-        n_states: 30,
+        n_states: 3,
         num_solver_iters: 100,
     }
 }
