@@ -1,5 +1,5 @@
-use egui::{CentralPanel, SidePanel, DragValue};
-use image_view::{ImageViewWidget, array_to_imagedata};
+use egui::{CentralPanel, DragValue, SidePanel};
+use image_view::{array_to_imagedata, ImageViewWidget};
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
@@ -56,6 +56,7 @@ pub struct TemplateApp {
     sim: Sim,
     img: ImageViewWidget,
     viewed_eigstate: usize,
+    show_probability: bool,
 }
 
 impl Default for TemplateApp {
@@ -66,7 +67,12 @@ impl Default for TemplateApp {
         let sim = Sim::new(cfg, state);
         let img = ImageViewWidget::default();
 
-        Self { sim, img, viewed_eigstate: 0 }
+        Self {
+            sim,
+            img,
+            viewed_eigstate: 0,
+            show_probability: false,
+        }
     }
 }
 
@@ -86,15 +92,22 @@ impl eframe::App for TemplateApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.sim.step();
 
+        let mut needs_update = false;
+
         SidePanel::left("left_panel").show(ctx, |ui| {
             let energies = &self.sim.artefacts.energies;
-            let res = ui.add(DragValue::new(&mut self.viewed_eigstate).clamp_range(0..=energies.len()-1));
+            needs_update |= ui
+                .add(DragValue::new(&mut self.viewed_eigstate).clamp_range(0..=energies.len() - 1))
+                .changed();
             ui.label(format!("Energy: {}", energies[self.viewed_eigstate]));
-
-            if res.changed() {
-                self.update_view(ctx);
-            }
+            needs_update |= ui
+                .checkbox(&mut self.show_probability, "Show probability")
+                .changed();
         });
+
+        if needs_update {
+            self.update_view(ctx);
+        }
 
         CentralPanel::default().show(ctx, |ui| {
             self.img.show(ui);
@@ -107,18 +120,26 @@ impl TemplateApp {
         let eigstate = &self.sim.artefacts.eigenstates[self.viewed_eigstate];
 
         let w = eigstate.data().len();
-        let image = eigstate.map(|v| {
-            let v = *v as f32 * (w as f32).sqrt();
-            if v > 0. {
-                [v, 0.3 * v, 0.0, 0.0]
-            } else {
-                [0.0, 0.3 * -v, -v, 0.0]
-            }
-        });
+
+        let image;
+        if self.show_probability {
+            image = eigstate.map(|v| {
+                let v = v.powi(2) as f32 * (w as f32).sqrt();
+                [v, v, v, 0.0]
+            });
+        } else {
+            image = eigstate.map(|v| {
+                let v = *v as f32 * (w as f32).sqrt();
+                if v > 0. {
+                    [v, 0.3 * v, 0.0, 0.0]
+                } else {
+                    [0.0, 0.3 * -v, -v, 0.0]
+                }
+            });
+        }
         let image = array_to_imagedata(&image);
 
         self.img.set_image("Spronkus".into(), ctx, image);
-
     }
 }
 
