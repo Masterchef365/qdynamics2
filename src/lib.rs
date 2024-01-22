@@ -46,7 +46,7 @@ fn initial_state(cfg: &SimConfig) -> SimState {
     }
 }
 
-const N: usize = 5;
+const N: usize = 20;
 fn initial_cfg() -> SimConfig {
     SimConfig {
         dx: 1.0,

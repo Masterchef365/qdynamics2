@@ -5,7 +5,7 @@ use eigenvalues::{
     DavidsonCorrection, SpectrumTarget,
 };
 use nalgebra::{
-    ComplexField, DMatrix, DMatrixSlice, DVector, DVectorSlice, MatrixN, Point2, Vector2,
+    ComplexField, DMatrix, DMatrixSlice, DVector, DVectorSlice, MatrixN, Point2, Vector2, SymmetricEigen,
 };
 use num_complex::{Complex64, ComplexFloat};
 
@@ -291,7 +291,8 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
 
     // Calculate energy eigenstates
     let start = Instant::now();
-    let eig = HermitianLanczos::new(ham_matrix.clone(), cfg.n_states, SpectrumTarget::Lowest).unwrap();
+    let eig = SymmetricEigen::new(ham_matrix.clone());
+    //let eig = HermitianLanczos::new(ham_matrix.clone(), cfg.n_states, SpectrumTarget::Lowest).unwrap();
     let time = start.elapsed().as_secs_f64();
 
     // DEBUGGGING
@@ -300,7 +301,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     let sel_energy_eigenstate = eig.eigenvectors.column(sel_idx);
     let hpsi = &ham_matrix * sel_energy_eigenstate;
 
-   let expect = sel_energy * sel_energy_eigenstate;
+    let expect = sel_energy * sel_energy_eigenstate;
 
     let percent_err = (hpsi - &expect).abs().component_div(&expect.abs());
     let avg_err = percent_err.sum() / percent_err.len() as f64;
