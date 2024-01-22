@@ -297,7 +297,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
             eigvals = eig.eigenvalues.as_slice().to_vec();
         }
         EigenAlgorithm::Lanczos => {
-            let eig = HermitianLanczos::new(ham, cfg.n_states, SpectrumTarget::Target(0.0)).unwrap();
+            let eig = HermitianLanczos::new(ham, cfg.n_states, SpectrumTarget::Lowest).unwrap();
 
             eigvects = eig
                 .eigenvectors
