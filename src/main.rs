@@ -86,10 +86,6 @@ impl eframe::App for TemplateApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.sim.step();
 
-        CentralPanel::default().show(ctx, |ui| {
-            self.img.show(ui);
-        });
-
         SidePanel::left("left_panel").show(ctx, |ui| {
             let energies = &self.sim.artefacts.energies;
             let res = ui.add(DragValue::new(&mut self.viewed_eigstate).clamp_range(0..=energies.len()-1));
@@ -98,6 +94,10 @@ impl eframe::App for TemplateApp {
             if res.changed() {
                 self.update_view(ctx);
             }
+        });
+
+        CentralPanel::default().show(ctx, |ui| {
+            self.img.show(ui);
         });
     }
 }
