@@ -198,11 +198,11 @@ impl TemplateApp {
                 .min(artefacts.energies.len() - 1);
             let eigstate = artefacts.eigenstates[self.viewed_eigstate];
 
-            let w = eigstate.data().len();
+            let w = eigstate.nrows() * eigstate.ncols();
 
             let image;
             if self.show_probability {
-                let sum: f32 = eigstate.data().iter().map(|v| v.powi(2)).sum();
+                let sum: f32 = eigstate.iter().map(|v| v.powi(2)).sum();
                 image = eigstate.map(|v| {
                     let v = (v.powi(2) / sum) as f32;
                     let v = 100.0 * v;
