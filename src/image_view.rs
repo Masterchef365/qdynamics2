@@ -3,7 +3,7 @@ use egui::{
     epaint::{ColorImage, ImageData, ImageDelta, TextureId},
     vec2, Image, Sense, TextureOptions, Ui, Vec2,
 };
-use qdynamics::array2d::Array2D;
+use ndarray::{Array3, Array2};
 
 #[derive(Default)]
 pub struct ImageViewWidget {
@@ -48,11 +48,10 @@ impl ImageViewWidget {
 }
 
 /// Converts an image of 0 - 1 flaots into egui image data
-pub fn array_to_imagedata(array: &Array2D<[f32; 4]>) -> ImageData {
-    let dims = [array.width(), array.height()];
+pub fn array_to_imagedata(array: &Array2<[f32; 4]>) -> ImageData {
+    let dims = [array.ncols(), array.nrows()];
 
     let mut rgba: Vec<u8> = array
-        .data()
         .iter()
         .copied()
         .flatten()

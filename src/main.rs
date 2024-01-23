@@ -1,9 +1,10 @@
 use egui::{CentralPanel, DragValue, Response, SelectableLabel, SidePanel, Ui};
+use glam::Vec2;
 use image_view::{array_to_imagedata, ImageViewWidget};
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
-use qdynamics::sim::{EigenAlgorithm, Nucleus, Sim, SimArtefacts, SimConfig, SimState};
+use qdynamics::sim::{Nucleus, Sim, SimArtefacts, SimConfig, SimState};
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
@@ -63,15 +64,13 @@ impl Default for TemplateApp {
         let cfg = initial_cfg();
         let edit_state = initial_state(&cfg);
 
-        let sim = Sim::new(cfg.clone(), edit_state.clone());
+        let sim = Sim::new(cfg, edit_state);
         let img = ImageViewWidget::default();
 
         Self {
-            edit_initial_state: edit_state,
             sim,
             img,
             viewed_eigstate: 0,
-            edit_cfg: cfg,
             show_probability: false,
             //max_states_is_grid_width: true,
         }
@@ -109,7 +108,7 @@ impl eframe::App for TemplateApp {
         SidePanel::left("left_panel").show(ctx, |ui| {
             if let Some(artefacts) = self.sim.artefacts() {
                 ui.strong("View");
-                let energies = artefacts.energies;
+                let energies = &artefacts.energies;
                 needs_update |= ui
                     .add(
                         DragValue::new(&mut self.viewed_eigstate)
@@ -196,7 +195,7 @@ impl TemplateApp {
             self.viewed_eigstate = self
                 .viewed_eigstate
                 .min(artefacts.energies.len() - 1);
-            let eigstate = artefacts.eigenstates[self.viewed_eigstate];
+            let eigstate = &artefacts.eigenstates[self.viewed_eigstate];
 
             let w = eigstate.nrows() * eigstate.ncols();
 
@@ -232,8 +231,8 @@ fn initial_state(cfg: &SimConfig) -> SimState {
             .map(|n| if n == 0 { 1.0 } else { 0.0 })
             .collect(),
         nuclei: vec![Nucleus {
-            pos: Point2::new(cfg.grid_width as f32 / 2., cfg.grid_width as f32 / 2.),
-            vel: Vector2::zeros(),
+            pos: Vec2::new(cfg.grid_width as f32 / 2., cfg.grid_width as f32 / 2.),
+            vel: Vec2::ZERO,
         }],
     }
 }
@@ -248,7 +247,6 @@ fn initial_cfg() -> SimConfig {
         v_scale: 1.,
         n_states: 10,
         num_solver_iters: 30,
-        eig_algo: EigenAlgorithm::LobPcg,
         tolerance: 1e-2,
     }
 }
