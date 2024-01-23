@@ -223,7 +223,7 @@ impl TemplateApp {
 
         let image;
         if self.show_probability {
-            let sum: f64 = eigstate.data().iter().map(|v| v.powi(2)).sum();
+            let sum: f32 = eigstate.data().iter().map(|v| v.powi(2)).sum();
             image = eigstate.map(|v| {
                 let v = (v.powi(2) / sum) as f32;
                 let v = 100.0 * v;
@@ -252,7 +252,7 @@ fn initial_state(cfg: &SimConfig) -> SimState {
             .map(|n| if n == 0 { 1.0 } else { 0.0 })
             .collect(),
         nuclei: vec![Nucleus {
-            pos: Point2::new(cfg.grid_width as f64 / 2., cfg.grid_width as f64 / 2.),
+            pos: Point2::new(cfg.grid_width as f32 / 2., cfg.grid_width as f32 / 2.),
             vel: Vector2::zeros(),
         }],
     }
