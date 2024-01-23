@@ -10,6 +10,7 @@ use nalgebra::{
 };
 
 use linfa_linalg::lobpcg::LobpcgResult;
+use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
 use crate::{
     array2d::Array2D,
@@ -212,11 +213,11 @@ fn array2d_to_nalgebra(arr: &Array2D<f32>) -> DVector<f32> {
 }
 
 impl HamiltonianObject {
-    fn ncols(&self) -> usize {
+    pub fn ncols(&self) -> usize {
         self.potential.data().len()
     }
 
-    fn nrows(&self) -> usize {
+    pub fn nrows(&self) -> usize {
         self.potential.data().len()
     }
 
@@ -228,7 +229,7 @@ impl HamiltonianObject {
         unimplemented!()
     }
 
-    fn matrix_vector_prod(&self, vs: DVectorSlice<f32>) -> DVector<f32> {
+    pub fn matrix_vector_prod(&self, vs: DVectorSlice<f32>) -> DVector<f32> {
         let psi = nalgebra_to_array2d(vs, &self.cfg);
 
         let mut output = Array2D::new(self.cfg.grid_width, self.cfg.grid_width);
@@ -268,7 +269,7 @@ impl HamiltonianObject {
     }
 
     // NOTE: This operation is not in the hot path so it is NOT optimized!
-    fn matrix_matrix_prod(&self, mtx: DMatrixSlice<f32>) -> DMatrix<f32> {
+    pub fn matrix_matrix_prod(&self, mtx: DMatrixSlice<f32>) -> DMatrix<f32> {
         let mut out_cols = vec![];
         for in_column in mtx.column_iter() {
             out_cols.push(self.matrix_vector_prod(in_column));
@@ -294,7 +295,7 @@ flat_output_vect.copy_from_slice(output.data());
 ///
 /// Generates the second-derivative finite-difference stencil in the position basis. This is then
 /// combined with the potential to form the Hamiltonian.
-fn solve_schrödinger(
+pub fn solve_schrödinger(
     cfg: &SimConfig,
     potential: &Array2D<f32>,
     cache: Option<SimArtefacts>,
@@ -343,7 +344,6 @@ fn solve_schrödinger(
             unimplemented!()
         }
         EigenAlgorithm::LobPcg => {
-            use ndarray_rand::{rand_distr::Uniform, RandomExt};
             let x = match cache {
                 None => {
                     ndarray::Array::random((ham.ncols(), cfg.n_states), Uniform::new(-1.0, 1.0))
@@ -479,15 +479,12 @@ impl Default for Nucleus {
 }
 
 impl HamiltonianObject {
-    /// Create an operator which is half the resolution of this one.
-    pub fn half(&self) -> Self {
-        let mut cfg = self.cfg.clone();
-        cfg.grid_width /= 2;
+    pub fn cfg(&self) -> &SimConfig {
+        &self.cfg
+    }
 
-        Self {
-            cfg,
-            potential: linear_downscale_by_two(&self.potential),
-        }
+    pub fn potential(&self) -> &Array2D<f32> {
+        &self.potential
     }
 }
 
