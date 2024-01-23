@@ -392,9 +392,9 @@ pub fn solve_schrödinger(
             }
         }
         EigenAlgorithm::Lobster => {
-            let lob = lobster(ham);
-            eigvals = lob.eigenvalues;
-            eigvects = lob.eigenvectors;
+            let (vals, vects) = lobster(ham);
+            eigvals = vals;
+            eigvects = vects;
         }
     };
     //let time = start.elapsed().as_secs_f32();
