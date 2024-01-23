@@ -79,7 +79,7 @@ impl Default for TemplateApp {
             viewed_eigstate: 0,
             edit_cfg: cfg,
             show_probability: false,
-            max_states_is_grid_width: true,
+            max_states_is_grid_width: false,
         }
     }
 }
@@ -268,7 +268,7 @@ fn initial_state(cfg: &SimConfig) -> SimState {
     }
 }
 
-const N: usize = 40;
+const N: usize = 2_usize.pow(7);
 fn initial_cfg() -> SimConfig {
     SimConfig {
         dx: 1.0,
@@ -276,7 +276,7 @@ fn initial_cfg() -> SimConfig {
         v0: -1.,
         v_soft: 0.1,
         v_scale: 1.,
-        n_states: 10,
+        n_states: 30,
         num_solver_iters: 30,
         eig_algo: EigenAlgorithm::LobPcg,
         tolerance: 1e-2,
