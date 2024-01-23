@@ -8,7 +8,8 @@ use nalgebra::{
     ComplexField, DMatrix, DMatrixSlice, DVector, DVectorSlice, MatrixN, Point2, SymmetricEigen,
     Vector2,
 };
-use ndarray_linalg::lobpcg::LobpcgResult;
+
+use linfa_linalg::lobpcg::LobpcgResult;
 use num_complex::{Complex64, ComplexFloat};
 
 use crate::array2d::Array2D;
@@ -311,9 +312,10 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
             eigvals = eig.eigenvalues.as_slice().to_vec();
         }
         EigenAlgorithm::LobPcg => {
-            let x = ndarray_linalg::generate::random((ham.ncols(), cfg.n_states));
+            use ndarray_rand::{RandomExt, rand_distr::Uniform};
+            let x = ndarray::Array::random((ham.ncols(), cfg.n_states), Uniform::new(-1.0, 1.0));
 
-            let result = ndarray_linalg::lobpcg::lobpcg::<f64, _, _>(
+            let result = linfa_linalg::lobpcg::lobpcg::<f64, _, _>(
                 |vects| {
                     let vects: DMatrix<f64> = ndarray_to_nalgebra(vects.to_owned());
                     let prod = ham.matrix_matrix_prod((&vects).into());
@@ -324,14 +326,15 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
                 None,
                 cfg.tolerance,
                 cfg.num_solver_iters,
-                ndarray_linalg::lobpcg::TruncatedOrder::Smallest,
+                linfa_linalg::lobpcg::Order::Smallest,
             );
 
             match result {
-                LobpcgResult::Ok(vals, vects, _norm) | LobpcgResult::Err(vals, vects, _norm, _) => {
-                    eigvals = vals.as_slice().unwrap().to_vec();
+                LobpcgResult::Ok(eig) | LobpcgResult::Err((_, Some(eig))) => {
+                    eigvals = eig.eigvals.as_slice().unwrap().to_vec();
 
-                    eigvects = vects
+                    eigvects = eig
+                        .eigvecs
                         .columns()
                         .into_iter()
                         .map(|col| {

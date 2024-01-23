@@ -24,7 +24,9 @@ nalgebra = { version = "0.24", features = ["serde"] }
 eigenvalues = "0.4.0"
 num-complex = "0.4"
 ndarray = "0.15.6"
-ndarray-linalg = { version = "0.16.0", features = ["openblas"] }
+linfa-linalg = "0.1.0"
+#ndarray-linalg = { version = "0.16.0", features = ["openblas"] }
+ndarray-rand = "0.14"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
