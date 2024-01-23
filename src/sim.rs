@@ -120,11 +120,14 @@ fn calculate_artefacts(
     let potential = calculate_potential(cfg, state);
     let (energies, eigenstates, cache) = solve_schrödinger(cfg, &potential, cache);
 
-    (SimArtefacts {
-        eigenstates,
-        energies,
-        potential,
-    }, cache)
+    (
+        SimArtefacts {
+            eigenstates,
+            energies,
+            potential,
+        },
+        cache,
+    )
 }
 
 /// Calculate the electric potential in the position basis
@@ -157,7 +160,8 @@ fn grid_positions(cfg: &SimConfig) -> Grid2D<Vec2> {
     let mut output = Grid2D::from_shape_vec(
         (cfg.grid_width, cfg.grid_width),
         vec![Vec2::ZERO; cfg.grid_width.pow(2)],
-    ).unwrap();
+    )
+    .unwrap();
 
     for y in 0..cfg.grid_width {
         for x in 0..cfg.grid_width {
@@ -306,9 +310,7 @@ fn solve_schrödinger(
                 .eigvecs
                 .columns()
                 .into_iter()
-                .map(|col| {
-                    vector_to_state(&col.to_owned(), cfg)
-                })
+                .map(|col| vector_to_state(&col.to_owned(), cfg))
                 .collect();
 
             cache = eig.eigvecs;
@@ -335,7 +337,6 @@ let kinetic_energy: f32 = state
 todo!()
 }
 */
-
 
 #[cfg(test)]
 mod tests {
@@ -368,6 +369,5 @@ fn state_to_vector(state: &Grid2D<f32>) -> Array1<f32> {
 */
 
 fn vector_to_state(state: &Array1<f32>, cfg: &SimConfig) -> Grid2D<f32> {
-    dbg!(state.shape());
-    state.clone().into_shape((cfg.grid_width, cfg.grid_width)).unwrap()
+    Array2::from_shape_vec((cfg.grid_width, cfg.grid_width), state.iter().copied().collect()).unwrap()
 }
