@@ -251,7 +251,7 @@ impl HamiltonianObject {
     fn matrix_matrix_prod(&self, mut mtx: Array2<f32>) -> Array2<f32> {
         for mut column in mtx.columns_mut() {
             let res = self.matrix_vector_prod(vector_to_state(&column.to_owned(), &self.cfg));
-            column.assign(&res);
+            column.assign(&state_to_vector(&res));
         }
         mtx
     }
@@ -362,11 +362,9 @@ impl Default for Nucleus {
     }
 }
 
-/*
 fn state_to_vector(state: &Grid2D<f32>) -> Array1<f32> {
     state.clone().into_shape(state.nrows() * state.ncols()).unwrap()
 }
-*/
 
 fn vector_to_state(state: &Array1<f32>, cfg: &SimConfig) -> Grid2D<f32> {
     Array2::from_shape_vec((cfg.grid_width, cfg.grid_width), state.iter().copied().collect()).unwrap()
