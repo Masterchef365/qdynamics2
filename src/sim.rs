@@ -10,20 +10,15 @@ use nalgebra::{
 };
 
 use linfa_linalg::lobpcg::LobpcgResult;
-
-use crate::array2d::Array2D;
+use ndarray::{Array1, Array2};
+use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
 // TODO: Set these parameters ...
 const NUCLEAR_MASS: f32 = 1.0;
 const ELECTRON_MASS: f32 = 1.0;
 const HBAR: f32 = 1.0;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum EigenAlgorithm {
-    Nalgebra,
-    Lanczos,
-    LobPcg,
-}
+pub type SpatialVector2D = Array2<f32>;
 
 #[derive(Clone)]
 pub struct SimConfig {
@@ -45,7 +40,6 @@ pub struct SimConfig {
     pub n_states: usize,
     pub num_solver_iters: usize,
     // /// Mass of each nucleus
-    pub eig_algo: EigenAlgorithm,
     pub tolerance: f32,
 }
 
@@ -72,11 +66,11 @@ pub struct SimState {
 #[derive(Clone)]
 pub struct SimArtefacts {
     /// Energy eigenstates (psi_n)
-    pub eigenstates: Vec<Array2D<f32>>,
+    pub eigenstates: Vec<SpatialVector2D>,
     /// Energy levels (E_n)
     pub energies: Vec<f32>,
     /// Map of electric potential due to nuclei
-    pub potential: Array2D<f32>,
+    pub potential: SpatialVector2D,
     // /// Amount of energy in the classical system at present time
     // pub classical_energy: f32,
 }
@@ -84,7 +78,7 @@ pub struct SimArtefacts {
 pub struct Sim {
     cfg: SimConfig,
     state: SimState,
-    artefacts: SimArtefacts,
+    cache: Option<SimArtefacts>,
 }
 
 impl Sim {
@@ -94,7 +88,7 @@ impl Sim {
         Self {
             state,
             cfg,
-            artefacts,
+            cache: None,
         }
     }
 
@@ -102,8 +96,8 @@ impl Sim {
         &self.state
     }
 
-    pub fn artefacts(&self) -> &SimArtefacts {
-        &self.artefacts
+    pub fn artefacts(&self) -> Option<&SimArtefacts> {
+        self.cache.as_ref()
     }
 
     pub fn cfg(&self) -> &SimConfig {
@@ -127,7 +121,7 @@ fn calculate_artefacts(
 }
 
 /// Calculate the electric potential in the position basis
-fn calculate_potential(cfg: &SimConfig, state: &SimState) -> Array2D<f32> {
+fn calculate_potential(cfg: &SimConfig, state: &SimState) -> SpatialVector2D {
     let grid_positions = grid_positions(cfg);
 
     let v = grid_positions
@@ -184,12 +178,12 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
 */
 #[derive(Clone)]
 struct HamiltonianObject {
-    potential: Array2D<f32>,
+    potential: SpatialVector2D,
     cfg: SimConfig,
 }
 
 impl HamiltonianObject {
-    pub fn from_potential(potential: &Array2D<f32>, cfg: &SimConfig) -> Self {
+    pub fn from_potential(potential: &SpatialVector2D, cfg: &SimConfig) -> Self {
         Self {
             cfg: cfg.clone(),
             // Diagonal includes both the potential AND the stencil centers
@@ -198,38 +192,22 @@ impl HamiltonianObject {
     }
 }
 
-fn nalgebra_to_array2d(vs: DVectorSlice<f32>, cfg: &SimConfig) -> Array2D<f32> {
-    Array2D::from_array(cfg.grid_width, vs.as_slice().to_vec())
-}
-
-fn array2d_to_nalgebra(arr: &Array2D<f32>) -> DVector<f32> {
-    arr.data().to_vec().into()
-}
-
 impl HamiltonianObject {
     fn ncols(&self) -> usize {
-        self.potential.data().len()
+        self.potential.nrows() * self.potential.ncols()
     }
 
     fn nrows(&self) -> usize {
-        self.potential.data().len()
-    }
-
-    fn diagonal(&self) -> DVector<f32> {
-        unimplemented!()
-    }
-
-    fn set_diagonal(&mut self, _diag: &DVector<f32>) {
-        unimplemented!()
+        self.ncols()
     }
 
     fn matrix_vector_prod(&self, vs: DVectorSlice<f32>) -> DVector<f32> {
-        let psi = nalgebra_to_array2d(vs, &self.cfg);
+        let psi = vector_to_state(vs, &self.cfg);
 
-        let mut output = Array2D::new(self.cfg.grid_width, self.cfg.grid_width);
+        let mut output = SpatialVector2D::zeros((self.cfg.grid_width, self.cfg.grid_width));
 
-        for x in 0..psi.width() {
-            for y in 0..psi.height() {
+        for y in 0..psi.nrows() {
+            for x in 0..psi.ncols() {
                 let center_world_coord = Point2::new(x as i32, y as i32);
                 let center_grid_coord = (x, y);
 
@@ -246,7 +224,7 @@ impl HamiltonianObject {
                     //(Vector2::new(0, 0), 1.0),
                 ] {
                     if let Some(grid_coord) =
-                        bounds_check(center_world_coord + off, psi.width() as i32)
+                        bounds_check(center_world_coord + off, psi.ncols() as i32)
                     {
                         sum += coeff * psi[grid_coord];
                     }
@@ -259,7 +237,7 @@ impl HamiltonianObject {
             }
         }
 
-        array2d_to_nalgebra(&output)
+        state_to_vector(&output)
     }
 
     // NOTE: This operation is not in the hot path so it is NOT optimized!
@@ -275,11 +253,11 @@ impl HamiltonianObject {
 /*
 fn hamiltonian_flat(
 cfg: &SimConfig,
-potential: &Array2D<f32>,
+potential: &StateVector,
 flat_input_vect: &[Complex64],
 flat_output_vect: &mut [Complex64],
 ) {
-let psi = Array2D::from_array(potential.width(), flat_input_vect.to_vec());
+let psi = Array2D::from_array(potential.ncols(), flat_input_vect.to_vec());
 let output = hamiltonian(cfg, &psi, potential);
 flat_output_vect.copy_from_slice(output.data());
 }
@@ -291,13 +269,13 @@ flat_output_vect.copy_from_slice(output.data());
 /// combined with the potential to form the Hamiltonian.
 fn solve_schrödinger(
     cfg: &SimConfig,
-    potential: &Array2D<f32>,
+    potential: &SpatialVector2D,
     cache: Option<SimArtefacts>,
-) -> (Vec<f32>, Vec<Array2D<f32>>) {
-    assert_eq!(cfg.grid_width, potential.width());
+) -> (Vec<f32>, Vec<SpatialVector2D>) {
+    assert_eq!(cfg.grid_width, potential.ncols());
 
     let cache = cache.filter(|cache| cache.energies.len() == cfg.n_states);
-    let cache = cache.filter(|cache| cache.potential.width() == potential.width());
+    let cache = cache.filter(|cache| cache.potential.ncols() == potential.ncols());
 
     // Build the Hamiltonian
     let ham = HamiltonianObject::from_potential(potential, cfg);
@@ -305,88 +283,46 @@ fn solve_schrödinger(
     // Calculate energy eigenstates
     //let start = Instant::now();
 
-    let eigvects: Vec<Array2D<f32>>;
+    let eigvects: Vec<SpatialVector2D>;
     let eigvals: Vec<f32>;
 
-    match cfg.eig_algo {
-        EigenAlgorithm::Nalgebra => {
-            let ident = DMatrix::identity(potential.data().len(), potential.data().len());
-            let ham_matrix = ham.matrix_matrix_prod((&ident).into());
-
-            let eig = SymmetricEigen::new(ham_matrix.clone());
-
-            eigvects = eig
-                .eigenvectors
-                .column_iter()
-                .map(|col| nalgebra_to_array2d(col, cfg))
-                .collect();
-
-            eigvals = eig.eigenvalues.as_slice().to_vec();
-        }
-        EigenAlgorithm::Lanczos => {
-            /*
-            let eig = HermitianLanczos::new(ham, cfg.n_states, SpectrumTarget::Lowest).unwrap();
-
-            eigvects = eig
-                .eigenvectors
-                .column_iter()
-                .map(|col| nalgebra_to_array2d(col, cfg))
-                .collect();
-
-            eigvals = eig.eigenvalues.as_slice().to_vec();
-            */
-            unimplemented!()
-        }
-        EigenAlgorithm::LobPcg => {
-            use ndarray_rand::{rand_distr::Uniform, RandomExt};
-            let x = match cache {
-                None => {
-                    ndarray::Array::random((ham.ncols(), cfg.n_states), Uniform::new(-1.0, 1.0))
-                }
-                Some(cache) => {
-                    let vects: Vec<DVector<f32>> = cache
-                        .eigenstates
-                        .into_iter()
-                        .map(|state| array2d_to_nalgebra(&state))
-                        .collect();
-                    nalgebra_to_ndarray(DMatrix::from_columns(vects.as_slice()))
-                }
-            };
-
-            let result = linfa_linalg::lobpcg::lobpcg::<f32, _, _>(
-                |vects| {
-                    let vects: DMatrix<f32> = ndarray_to_nalgebra(vects.to_owned());
-                    let prod = ham.matrix_matrix_prod((&vects).into());
-                    nalgebra_to_ndarray(prod)
-                },
-                x,
-                |_| (),
-                None,
-                cfg.tolerance,
-                cfg.num_solver_iters,
-                linfa_linalg::lobpcg::Order::Smallest,
-            );
-
-            match result {
-                LobpcgResult::Ok(eig) | LobpcgResult::Err((_, Some(eig))) => {
-                    eigvals = eig.eigvals.as_slice().unwrap().to_vec();
-
-                    eigvects = eig
-                        .eigvecs
-                        .columns()
-                        .into_iter()
-                        .map(|col| {
-                            nalgebra_to_array2d(
-                                (&ndarray_to_nalgebra_vect(col.to_owned())).into(),
-                                cfg,
-                            )
-                        })
-                        .collect();
-                }
-                LobpcgResult::Err((e, None)) => panic!("{}", e),
-            }
-        }
+    let preconditioner: Array2<f32> = match cache {
+        None => Array2::random((ham.ncols(), cfg.n_states), Uniform::new(-1.0, 1.0)),
+        Some(cache) => Array2::from_shape_vec(
+            (ham.ncols(), cfg.n_states),
+            cache
+                .eigenstates
+                .into_iter()
+                .map(|state| state_to_vector(&state))
+                .collect(),
+        ),
     };
+
+    let result = linfa_linalg::lobpcg::lobpcg::<f32, _, _>(
+        |vects| ham.matrix_matrix_prod(vects),
+        preconditioner,
+        |_| (),
+        None,
+        cfg.tolerance,
+        cfg.num_solver_iters,
+        linfa_linalg::lobpcg::Order::Smallest,
+    );
+
+    match result {
+        LobpcgResult::Ok(eig) | LobpcgResult::Err((_, Some(eig))) => {
+            eigvals = eig.eigvals.as_slice().unwrap().to_vec();
+
+            eigvects = eig
+                .eigvecs
+                .columns()
+                .into_iter()
+                .map(|col| {
+                    nalgebra_to_array2d((&ndarray_to_nalgebra_vect(col.to_owned())).into(), cfg)
+                })
+                .collect();
+        }
+        LobpcgResult::Err((e, None)) => panic!("{}", e),
+    }
     //let time = start.elapsed().as_secs_f32();
     //dbg!(time);
 
@@ -428,18 +364,6 @@ todo!()
 }
 */
 
-fn nalgebra_to_ndarray(vect: nalgebra::DMatrix<f32>) -> ndarray::Array2<f32> {
-    ndarray::Array2::from_shape_vec(vect.shape(), vect.transpose().as_slice().to_vec()).unwrap()
-}
-
-fn ndarray_to_nalgebra(vect: ndarray::Array2<f32>) -> nalgebra::DMatrix<f32> {
-    DMatrix::from_iterator(vect.nrows(), vect.ncols(), vect.t().iter().copied())
-}
-
-fn ndarray_to_nalgebra_vect(vect: ndarray::Array1<f32>) -> nalgebra::DVector<f32> {
-    DVector::from_vec(vect.as_slice().unwrap().to_vec())
-}
-
 impl Sim {
     pub fn step(&mut self) {}
 }
@@ -454,8 +378,8 @@ mod tests {
     fn roundtrip_nalgebra_to_array() {
         let w = 20;
         let nalg = DVector::from_iterator(w, (0..w).map(|i| i as f32));
-        let arr = nalgebra_to_array2d((&nalg).into(), &initial_cfg());
-        assert_eq!(nalg, array2d_to_nalgebra(&arr));
+        let arr = ((&nalg).into(), &initial_cfg());
+        assert_eq!(nalg, state_to_vector(&arr));
     }
 }
 
@@ -466,4 +390,12 @@ impl Default for Nucleus {
             pos: Point2::origin(),
         }
     }
+}
+
+fn state_to_vector(state: &SpatialVector2D) -> Array1<f32> {
+    state.into_shape(state.nrows() * state.ncols()).unwrap()
+}
+
+fn vector_to_state(state: &Array1<f32>, cfg: &SimConfig) -> SpatialVector2D {
+    state.into_shape((cfg.grid_width, cfg.grid_width)).unwrap()
 }

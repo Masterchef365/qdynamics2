@@ -1671,7 +1671,6 @@ dependencies = [
  "num-traits",
  "rand 0.7.3",
  "rand_distr 0.3.0",
- "serde",
  "simba",
  "typenum",
 ]
@@ -2100,10 +2099,8 @@ dependencies = [
  "getrandom 0.2.11",
  "linfa-linalg",
  "log",
- "nalgebra",
  "ndarray",
  "ndarray-rand",
- "num-complex 0.4.4",
  "serde",
  "wasm-bindgen-futures",
 ]
