@@ -481,8 +481,11 @@ impl Default for Nucleus {
 impl HamiltonianObject {
     /// Create an operator which is half the resolution of this one.
     pub fn half(&self) -> Self {
+        let mut cfg = self.cfg.clone();
+        cfg.grid_width /= 2;
+
         Self {
-            cfg: self.cfg.clone(),
+            cfg,
             potential: linear_downscale_by_two(&self.potential),
         }
     }
