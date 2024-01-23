@@ -82,9 +82,9 @@ pub struct SimArtefacts {
 }
 
 pub struct Sim {
-    pub cfg: SimConfig,
-    pub state: SimState,
-    pub artefacts: SimArtefacts,
+    cfg: SimConfig,
+    state: SimState,
+    artefacts: SimArtefacts,
 }
 
 impl Sim {
@@ -96,6 +96,18 @@ impl Sim {
             cfg,
             artefacts,
         }
+    }
+
+    pub fn state(&self) -> &SimState {
+        &self.state
+    }
+
+    pub fn artefacts(&self) -> &SimArtefacts {
+        &self.artefacts
+    }
+
+    pub fn cfg(&self) -> &SimConfig {
+        &self.cfg
     }
 }
 

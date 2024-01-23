@@ -112,7 +112,7 @@ impl eframe::App for TemplateApp {
 
         SidePanel::left("left_panel").show(ctx, |ui| {
             ui.strong("View");
-            let energies = &self.sim.artefacts.energies;
+            let energies = &self.sim.artefacts().energies;
             needs_update |= ui
                 .add(DragValue::new(&mut self.viewed_eigstate).clamp_range(0..=energies.len() - 1))
                 .changed();
@@ -212,15 +212,15 @@ impl eframe::App for TemplateApp {
 impl TemplateApp {
     fn recalculate(&mut self, ctx: &egui::Context) {
         self.sim = Sim::new(self.edit_cfg.clone(), self.edit_initial_state.clone(), self.cache.take());
-        self.cache = Some(self.sim.artefacts.clone());
+        self.cache = Some(self.sim.artefacts().clone());
         self.update_view(ctx);
     }
 
     fn update_view(&mut self, ctx: &egui::Context) {
         self.viewed_eigstate = self
             .viewed_eigstate
-            .min(self.sim.artefacts.energies.len() - 1);
-        let eigstate = &self.sim.artefacts.eigenstates[self.viewed_eigstate];
+            .min(self.sim.artefacts().energies.len() - 1);
+        let eigstate = &self.sim.artefacts().eigenstates[self.viewed_eigstate];
 
         let w = eigstate.data().len();
 
