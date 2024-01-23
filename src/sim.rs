@@ -4,6 +4,7 @@ use eigenvalues::{
     davidson::Davidson, lanczos::HermitianLanczos, matrix_operations::MatrixOperations,
     DavidsonCorrection, SpectrumTarget,
 };
+use glam::Vec2;
 
 use linfa_linalg::lobpcg::LobpcgResult;
 use ndarray::{Array1, Array2};
@@ -43,9 +44,9 @@ pub struct SimConfig {
 pub struct Nucleus {
     // pub mass: f32,
     /// Velocity
-    pub vel: Vector2<f32>,
+    pub vel: Vec2,
     /// Position
-    pub pos: Point2<f32>,
+    pub pos: Vec2,
 }
 
 #[derive(Clone, Debug)]
@@ -121,14 +122,13 @@ fn calculate_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
     let grid_positions = grid_positions(cfg);
 
     let v = grid_positions
-        .data()
         .iter()
         .map(|grid_pos| {
             state
                 .nuclei
                 .iter()
                 .map(|nucleus| {
-                    let r = (nucleus.pos - grid_pos).magnitude();
+                    let r = (nucleus.pos - *grid_pos).length();
                     softened_potential(r, cfg)
                 })
                 .sum()
@@ -143,15 +143,15 @@ fn softened_potential(r: f32, cfg: &SimConfig) -> f32 {
 }
 
 /// World-space positions at grid points
-fn grid_positions(cfg: &SimConfig) -> Grid2D<Point2<f32>> {
+fn grid_positions(cfg: &SimConfig) -> Grid2D<Vec2> {
     let mut output = Grid2D::from_shape_vec(
         (cfg.grid_width, cfg.grid_width),
-        vec![Point2::origin(); cfg.grid_width.pow(2)],
-    );
+        vec![Vec2::ZERO; cfg.grid_width.pow(2)],
+    ).unwrap();
 
     for y in 0..cfg.grid_width {
         for x in 0..cfg.grid_width {
-            output[(x, y)] = Point2::new(x as f32, y as f32) * cfg.dx;
+            output[(x, y)] = Vec2::new(x as f32, y as f32) * cfg.dx;
         }
     }
 
@@ -159,8 +159,8 @@ fn grid_positions(cfg: &SimConfig) -> Grid2D<Point2<f32>> {
 }
 
 /// Returns false if out of bounds with the given width
-fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
-    (pt.x >= 0 && pt.y >= 0 && pt.x < width && pt.y < width).then(|| (pt.x as usize, pt.y as usize))
+fn bounds_check(pt_x: i32, pt_y: i32, width: i32) -> Option<(usize, usize)> {
+    (pt_x >= 0 && pt_y >= 0 && pt_x < width && pt_y < width).then(|| (pt_x as usize, pt_y as usize))
 }
 
 /*
@@ -197,14 +197,11 @@ impl HamiltonianObject {
         self.ncols()
     }
 
-    fn matrix_vector_prod(&self, vs: DVectorSlice<f32>) -> DVector<f32> {
-        let psi = vector_to_state(vs, &self.cfg);
-
+    fn matrix_vector_prod(&self, psi: Grid2D<f32>) -> Grid2D<f32> {
         let mut output = Grid2D::zeros((self.cfg.grid_width, self.cfg.grid_width));
 
         for y in 0..psi.nrows() {
             for x in 0..psi.ncols() {
-                let center_world_coord = Point2::new(x as i32, y as i32);
                 let center_grid_coord = (x, y);
 
                 let mut sum = 0.0;
@@ -212,15 +209,15 @@ impl HamiltonianObject {
                 let pot = self.potential[center_grid_coord];
 
                 for (off, coeff) in [
-                    (Vector2::new(-1, 0), 1.0),
-                    (Vector2::new(1, 0), 1.0),
-                    (Vector2::new(0, 1), 1.0),
-                    (Vector2::new(0, -1), 1.0),
-                    (Vector2::new(0, 0), pot - 4.0),
-                    //(Vector2::new(0, 0), 1.0),
+                    ((-1, 0), 1.0),
+                    ((1, 0), 1.0),
+                    ((0, 1), 1.0),
+                    ((0, -1), 1.0),
+                    ((0, 0), pot - 4.0),
+                    //(Vec2::new(0, 0), 1.0),
                 ] {
                     if let Some(grid_coord) =
-                        bounds_check(center_world_coord + off, psi.ncols() as i32)
+                        bounds_check(x as i32 + off.0, y as i32 + off.1, psi.ncols() as i32)
                     {
                         sum += coeff * psi[grid_coord];
                     }
@@ -233,16 +230,16 @@ impl HamiltonianObject {
             }
         }
 
-        state_to_vector(&output)
+        output
     }
 
     // NOTE: This operation is not in the hot path so it is NOT optimized!
-    fn matrix_matrix_prod(&self, mtx: DMatrixSlice<f32>) -> DMatrix<f32> {
-        let mut out_cols = vec![];
-        for in_column in mtx.column_iter() {
-            out_cols.push(self.matrix_vector_prod(in_column));
+    fn matrix_matrix_prod(&self, mut mtx: Array2<f32>) -> Array2<f32> {
+        for column in mtx.columns_mut() {
+            let res = self.matrix_vector_prod(vector_to_state(&column.to_owned(), &self.cfg));
+            column.assign(&res);
         }
-        DMatrix::from_columns(&out_cols)
+        mtx
     }
 }
 
@@ -313,7 +310,7 @@ fn solve_schrödinger(
                 .columns()
                 .into_iter()
                 .map(|col| {
-                    vector_to_state(col, cfg)
+                    vector_to_state(&col.to_owned(), cfg)
                 })
                 .collect();
         }
@@ -382,8 +379,8 @@ mod tests {
 impl Default for Nucleus {
     fn default() -> Self {
         Self {
-            vel: Vector2::zeros(),
-            pos: Point2::origin(),
+            vel: Vec2::ZERO,
+            pos: Vec2::ZERO,
         }
     }
 }
