@@ -81,12 +81,14 @@ pub struct Sim {
 
 impl Sim {
     pub fn new(cfg: SimConfig, init_state: SimState) -> Self {
-        Self {
+        let mut inst = Self {
             state: init_state,
             cfg,
             cache: None,
             artefacts: None,
-        }
+        };
+        inst.recalculate();
+        inst
     }
 
     pub fn recalculate(&mut self) {
@@ -359,10 +361,13 @@ impl Default for Nucleus {
     }
 }
 
+/*
 fn state_to_vector(state: &Grid2D<f32>) -> Array1<f32> {
     state.clone().into_shape(state.nrows() * state.ncols()).unwrap()
 }
+*/
 
 fn vector_to_state(state: &Array1<f32>, cfg: &SimConfig) -> Grid2D<f32> {
+    dbg!(state.shape());
     state.clone().into_shape((cfg.grid_width, cfg.grid_width)).unwrap()
 }
