@@ -288,7 +288,7 @@ fn solve_schrödinger(
                 .into_iter()
                 .map(|state| state_to_vector(&state))
                 .collect(),
-        ),
+        ).unwrap(),
     };
 
     let result = linfa_linalg::lobpcg::lobpcg::<f32, _, _>(
