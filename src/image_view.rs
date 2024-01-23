@@ -4,6 +4,11 @@ use egui::{
     vec2, Image, Sense, TextureOptions, Ui, Vec2,
 };
 use ndarray::{Array3, Array2};
+use qdynamics::sim::{SimState, SimArtefacts};
+
+pub struct StateViewConfig {
+    pub energy_level: usize,
+}
 
 #[derive(Default)]
 pub struct ImageViewWidget {
@@ -25,14 +30,17 @@ impl ImageViewWidget {
                     vec2(available.y / tex_aspect, available.y)
                 };
 
-                return ui.add(Image::new((tex, size)).sense(Sense::click_and_drag()));
+                let image = Image::new((tex, size);
+                return ui.add().sense(Sense::click_and_drag()));
             }
         }
 
         ui.label("Texture not set, this is an error!")
     }
 
-    pub fn set_image(&mut self, name: String, ctx: &egui::Context, image: ImageData) {
+    pub fn set_state(&mut self, name: String, ctx: &egui::Context, state: &SimState, artefact: &SimArtefacts) {
+        let image = array_to_imagedata(artefact.eigenstates[]);
+
         if let Some(tex) = self.tex {
             ctx.tex_manager()
                 .write()
@@ -45,6 +53,40 @@ impl ImageViewWidget {
     pub fn tex(&self) -> Option<TextureId> {
         self.tex
     }
+}
+
+fn sim_state_editor(ui: &mut Ui, state: &mut SimState) -> bool {
+    let mut needs_recalculate = false;
+
+    // Just nuclei for now
+    let mut delete = None;
+    for (idx, nucleus) in state.nuclei.iter_mut().enumerate() {
+        ui.horizontal(|ui| {
+            needs_recalculate |= ui
+                .add(DragValue::new(&mut nucleus.pos.x).prefix("x: ").speed(1e-1))
+                .changed();
+            needs_recalculate |= ui
+                .add(DragValue::new(&mut nucleus.pos.y).prefix("y: ").speed(1e-1))
+                .changed();
+
+            if ui.button("Delete").clicked() {
+                delete = Some(idx);
+                needs_recalculate = true;
+            }
+        });
+    }
+
+    if let Some(idx) = delete {
+        state.nuclei.remove(idx);
+        needs_recalculate = true;
+    }
+
+    if ui.button("Add").clicked() {
+        state.nuclei.push(Nucleus::default());
+        needs_recalculate = true;
+    }
+
+    needs_recalculate
 }
 
 /// Converts an image of 0 - 1 flaots into egui image data

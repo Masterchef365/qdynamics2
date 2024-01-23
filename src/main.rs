@@ -5,6 +5,7 @@ use image_view::{array_to_imagedata, ImageViewWidget};
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
 use qdynamics::sim::{Nucleus, Sim, SimArtefacts, SimConfig, SimState};
+use widgets::{StateViewConfig, display_imagedata};
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
@@ -49,14 +50,13 @@ fn main() {
     });
 }
 
-mod image_view;
+mod widgets;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 pub struct TemplateApp {
     sim: Sim,
     img: ImageViewWidget,
-    viewed_eigstate: usize,
-    show_probability: bool,
+    view_cfg: StateViewConfig,
 }
 
 impl Default for TemplateApp {
@@ -70,8 +70,7 @@ impl Default for TemplateApp {
         Self {
             sim,
             img,
-            viewed_eigstate: 0,
-            show_probability: false,
+            view_cfg: StateViewConfig::default(),
             //max_states_is_grid_width: true,
         }
     }
@@ -192,32 +191,13 @@ impl TemplateApp {
 
     fn update_view(&mut self, ctx: &egui::Context) {
         if let Some(artefacts) = self.sim.artefacts() {
-            self.viewed_eigstate = self
-                .viewed_eigstate
+            self.view_cfg.energy_level = self
+                .view_cfg.energy_level
                 .min(artefacts.energies.len() - 1);
-            let eigstate = &artefacts.eigenstates[self.viewed_eigstate];
 
             let w = eigstate.nrows() * eigstate.ncols();
-
-            let image;
-            if self.show_probability {
-                let sum: f32 = eigstate.iter().map(|v| v.powi(2)).sum();
-                image = eigstate.map(|v| {
-                    let v = (v.powi(2) / sum) as f32;
-                    let v = 100.0 * v;
-                    [v, v, v, 0.0]
-                });
-            } else {
-                image = eigstate.map(|v| {
-                    let v = *v as f32 * (w as f32).sqrt();
-                    if v > 0. {
-                        [v, 0.3 * v, 0.0, 0.0]
-                    } else {
-                        [0.0, 0.3 * -v, -v, 0.0]
-                    }
-                });
-            }
-            let image = array_to_imagedata(&image);
+            
+            let image = display_imagedata(&self.view_cfg, artefacts);
 
             self.img.set_image("Spronkus".into(), ctx, image);
         }
@@ -249,38 +229,4 @@ fn initial_cfg() -> SimConfig {
         num_solver_iters: 30,
         tolerance: 1e-2,
     }
-}
-
-fn sim_state_editor(ui: &mut Ui, state: &mut SimState) -> bool {
-    let mut needs_recalculate = false;
-
-    // Just nuclei for now
-    let mut delete = None;
-    for (idx, nucleus) in state.nuclei.iter_mut().enumerate() {
-        ui.horizontal(|ui| {
-            needs_recalculate |= ui
-                .add(DragValue::new(&mut nucleus.pos.x).prefix("x: ").speed(1e-1))
-                .changed();
-            needs_recalculate |= ui
-                .add(DragValue::new(&mut nucleus.pos.y).prefix("y: ").speed(1e-1))
-                .changed();
-
-            if ui.button("Delete").clicked() {
-                delete = Some(idx);
-                needs_recalculate = true;
-            }
-        });
-    }
-
-    if let Some(idx) = delete {
-        state.nuclei.remove(idx);
-        needs_recalculate = true;
-    }
-
-    if ui.button("Add").clicked() {
-        state.nuclei.push(Nucleus::default());
-        needs_recalculate = true;
-    }
-
-    needs_recalculate
 }
