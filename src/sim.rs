@@ -14,7 +14,7 @@ use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
 use crate::{
     array2d::Array2D,
-    lobster::{lobster, LobsterOutput},
+    lobster::lobster,
 };
 
 // TODO: Set these parameters ...
