@@ -329,33 +329,6 @@ fn solve_schrödinger(
     (sorted_eigvals, sorted_eigvecs, cache)
 }
 
-/*
-fn calculate_classical_energy(cfg: &SimConfig, state: &SimState) -> f32 {
-let kinetic_energy: f32 = state
-.nuclei
-.iter()
-.map(|nucleus| NUCLEAR_MASS * nucleus.vel.magnitude_squared() / 2.)
-.sum();
-
-todo!()
-}
-*/
-
-#[cfg(test)]
-mod tests {
-    use crate::initial_cfg;
-
-    use super::*;
-
-    #[test]
-    fn roundtrip_nalgebra_to_array() {
-        let w = 20;
-        let nalg = DVector::from_iterator(w, (0..w).map(|i| i as f32));
-        let arr = ((&nalg).into(), &initial_cfg());
-        assert_eq!(nalg, state_to_vector(&arr));
-    }
-}
-
 impl Default for Nucleus {
     fn default() -> Self {
         Self {
@@ -370,5 +343,6 @@ fn state_to_vector(state: &Grid2D<f32>) -> Array1<f32> {
 }
 
 fn vector_to_state(state: &Array1<f32>, cfg: &SimConfig) -> Grid2D<f32> {
-    Array2::from_shape_vec((cfg.grid_width, cfg.grid_width), state.iter().copied().collect()).unwrap()
+    state.clone().into_shape((cfg.grid_width, cfg.grid_width)).unwrap()
+    //Array2::from_shape_vec((cfg.grid_width, cfg.grid_width), state.iter().copied().collect()).unwrap()
 }
