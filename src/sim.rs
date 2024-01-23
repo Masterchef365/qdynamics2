@@ -11,7 +11,10 @@ use nalgebra::{
 
 use linfa_linalg::lobpcg::LobpcgResult;
 
-use crate::array2d::Array2D;
+use crate::{
+    array2d::Array2D,
+    lobster::{lobster, LobsterOutput},
+};
 
 // TODO: Set these parameters ...
 const NUCLEAR_MASS: f32 = 1.0;
@@ -23,6 +26,8 @@ pub enum EigenAlgorithm {
     Nalgebra,
     Lanczos,
     LobPcg,
+
+    Lobster,
 }
 
 #[derive(Clone)]
@@ -183,7 +188,7 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
 ///                   | 0   k   0 |
 */
 #[derive(Clone)]
-struct HamiltonianObject {
+pub struct HamiltonianObject {
     potential: Array2D<f32>,
     cfg: SimConfig,
 }
@@ -386,6 +391,11 @@ fn solve_schrödinger(
                 LobpcgResult::Err((e, None)) => panic!("{}", e),
             }
         }
+        EigenAlgorithm::Lobster => {
+            let lob = lobster(ham);
+            eigvals = lob.eigenvalues;
+            eigvects = lob.eigenvectors;
+        }
     };
     //let time = start.elapsed().as_secs_f32();
     //dbg!(time);
@@ -466,4 +476,44 @@ impl Default for Nucleus {
             pos: Point2::origin(),
         }
     }
+}
+
+impl HamiltonianObject {
+    /// Create an operator which is half the resolution of this one.
+    pub fn half(&self) -> Self {
+        Self {
+            cfg: self.cfg.clone(),
+            potential: linear_downscale_by_two(&self.potential),
+        }
+    }
+}
+
+pub fn linear_downscale_by_two(inp: &Array2D<f32>) -> Array2D<f32> {
+    let mut outp = Array2D::new(inp.width() / 2, inp.height() / 2);
+
+    for y in 0..inp.height() {
+        for x in 0..inp.width() {
+            let x_base = x * 2;
+            let y_base = y * 2;
+            outp[(x, y)] = (inp[(x_base, y_base)]
+                + inp[(x_base + 1, y_base)]
+                + inp[(x_base, y_base + 1)]
+                + inp[(x_base + 1, y_base + 1)])
+                / 4.0;
+        }
+    }
+
+    outp
+}
+
+pub fn nearest_upscale_by_two(inp: &Array2D<f32>) -> Array2D<f32> {
+    let mut outp = Array2D::new(inp.width() * 2, inp.height() * 2);
+
+    for y in 0..outp.height() {
+        for x in 0..outp.width() {
+            outp[(x, y)] = inp[(x / 2, y / 2)];
+        }
+    }
+
+    outp
 }
