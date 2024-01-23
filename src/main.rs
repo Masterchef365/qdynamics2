@@ -277,8 +277,8 @@ fn initial_cfg() -> SimConfig {
         v_soft: 0.1,
         v_scale: 1.,
         n_states: 30,
-        num_solver_iters: 30,
-        eig_algo: EigenAlgorithm::LobPcg,
+        num_solver_iters: 10,
+        eig_algo: EigenAlgorithm::Lobster,
         tolerance: 1e-2,
     }
 }
