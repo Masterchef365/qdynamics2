@@ -1,11 +1,10 @@
 use egui::{CentralPanel, DragValue, Response, SelectableLabel, SidePanel, Ui};
 use glam::Vec2;
-use image_view::{array_to_imagedata, ImageViewWidget};
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
 use qdynamics::sim::{Nucleus, Sim, SimArtefacts, SimConfig, SimState};
-use widgets::{StateViewConfig, display_imagedata};
+use widgets::{StateViewConfig, display_imagedata, ImageViewWidget, sim_state_editor};
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
@@ -110,13 +109,13 @@ impl eframe::App for TemplateApp {
                 let energies = &artefacts.energies;
                 needs_update |= ui
                     .add(
-                        DragValue::new(&mut self.viewed_eigstate)
+                        DragValue::new(&mut self.view_cfg.viewed_eigenstate)
                             .clamp_range(0..=energies.len() - 1),
                     )
                     .changed();
-                ui.label(format!("Energy: {}", energies[self.viewed_eigstate]));
+                ui.label(format!("Energy: {}", energies[self.view_cfg.viewed_eigenstate]));
                 needs_update |= ui
-                    .checkbox(&mut self.show_probability, "Show probability")
+                    .checkbox(&mut self.view_cfg.show_probability, "Show probability")
                     .changed();
             }
 
@@ -191,15 +190,11 @@ impl TemplateApp {
 
     fn update_view(&mut self, ctx: &egui::Context) {
         if let Some(artefacts) = self.sim.artefacts() {
-            self.view_cfg.energy_level = self
-                .view_cfg.energy_level
+            self.view_cfg.viewed_eigenstate = self
+                .view_cfg.viewed_eigenstate
                 .min(artefacts.energies.len() - 1);
 
-            let w = eigstate.nrows() * eigstate.ncols();
-            
-            let image = display_imagedata(&self.view_cfg, artefacts);
-
-            self.img.set_image("Spronkus".into(), ctx, image);
+            self.img.set_state("Spronkus".into(), ctx, &self.view_cfg, &self.sim.state(), artefacts);
         }
     }
 }
