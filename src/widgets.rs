@@ -1,7 +1,7 @@
 use egui::{
     self,
     epaint::{ColorImage, ImageData, ImageDelta, TextureId},
-    vec2, Image, Sense, TextureOptions, Ui, Vec2,
+    vec2, Image, Sense, Stroke, TextureOptions, Ui, Vec2,
 };
 use egui::{
     CentralPanel, Color32, DragValue, Frame, Pos2, Rect, Response, SelectableLabel, SidePanel,
@@ -27,6 +27,7 @@ impl Default for StateViewConfig {
 #[derive(Default)]
 pub struct ImageViewWidget {
     tex: Option<TextureId>,
+    state: Option<SimState>,
 }
 
 impl ImageViewWidget {
@@ -38,14 +39,14 @@ impl ImageViewWidget {
             if let Some(tex_meta) = ui.ctx().tex_manager().read().meta(tex) {
                 let tex_size = Vec2::from(tex_meta.size.map(|v| v as f32));
                 let tex_aspect = tex_size.x / tex_size.y;
-                let size = if available.x / available.y < tex_aspect {
+                let image_size_egui = if available.x / available.y < tex_aspect {
                     vec2(available.x, available.x / tex_aspect)
                 } else {
                     vec2(available.y / tex_aspect, available.y)
                 };
 
                 Frame::canvas(ui.style()).show(ui, |ui| {
-                    let resp = ui.allocate_response(size, Sense::click_and_drag());
+                    let resp = ui.allocate_response(image_size_egui, Sense::click_and_drag());
 
                     let paint = ui.painter();
                     paint.image(
@@ -54,6 +55,23 @@ impl ImageViewWidget {
                         Rect::from_two_pos(Pos2::ZERO, Pos2::new(1., 1.)),
                         Color32::WHITE,
                     );
+
+                    if let Some(state) = &self.state {
+                        let egui_coord_per_sim_coord = |pt: egui::Vec2| {
+                            resp.rect.min
+                                + ((pt + egui::Vec2::splat(0.5)) * image_size_egui)
+                                    / egui::Vec2::from(tex_meta.size.map(|sz| sz as f32))
+                        };
+
+                        for nucleus in &state.nuclei {
+                            paint.circle(
+                                egui_coord_per_sim_coord(egui::Vec2::from(nucleus.pos.to_array())),
+                                7.0,
+                                Color32::GREEN,
+                                Stroke::NONE,
+                            );
+                        }
+                    }
 
                     return resp;
                 });
@@ -72,6 +90,7 @@ impl ImageViewWidget {
         artefact: &SimArtefacts,
     ) {
         let image = display_imagedata(cfg, artefact);
+        self.state = Some(state.clone());
 
         if let Some(tex) = self.tex {
             ctx.tex_manager()
