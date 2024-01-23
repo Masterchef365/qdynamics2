@@ -51,6 +51,8 @@ impl ImageViewWidget {
 pub fn array_to_imagedata(array: &Array2<[f32; 4]>) -> ImageData {
     let dims = [array.ncols(), array.nrows()];
 
+    let array = array.t();
+
     let mut rgba: Vec<u8> = array
         .iter()
         .copied()
