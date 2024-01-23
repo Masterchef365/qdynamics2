@@ -75,17 +75,17 @@ pub struct SimArtefacts {
 pub struct Sim {
     cfg: SimConfig,
     state: SimState,
-    cache: Option<SimArtefacts>,
+    cache: Option<Cache>,
+    artefacts: Option<SimArtefacts>,
 }
 
 impl Sim {
-    pub fn new(cfg: SimConfig, state: SimState, cache: Option<SimArtefacts>) -> Self {
-        let artefacts = calculate_artefacts(&cfg, &state, cache);
-
+    pub fn new(cfg: SimConfig, init_state: SimState) -> Self {
         Self {
-            state,
+            state: init_state,
             cfg,
             cache: None,
+            artefacts: None,
         }
     }
 
@@ -94,18 +94,20 @@ impl Sim {
     }
 
     pub fn artefacts(&self) -> Option<&SimArtefacts> {
-        self.cache.as_ref()
+        self.artefacts.as_ref()
     }
 
     pub fn cfg(&self) -> &SimConfig {
         &self.cfg
     }
+
+    pub fn step(&mut self) {}
 }
 
 fn calculate_artefacts(
     cfg: &SimConfig,
     state: &SimState,
-    cache: Option<SimArtefacts>,
+    cache: Option<Cache>,
 ) -> SimArtefacts {
     let potential = calculate_potential(cfg, state);
     let (energies, eigenstates) = solve_schrödinger(cfg, &potential, cache);
@@ -235,7 +237,7 @@ impl HamiltonianObject {
 
     // NOTE: This operation is not in the hot path so it is NOT optimized!
     fn matrix_matrix_prod(&self, mut mtx: Array2<f32>) -> Array2<f32> {
-        for column in mtx.columns_mut() {
+        for mut column in mtx.columns_mut() {
             let res = self.matrix_vector_prod(vector_to_state(&column.to_owned(), &self.cfg));
             column.assign(&res);
         }
@@ -256,6 +258,9 @@ flat_output_vect.copy_from_slice(output.data());
 }
 */
 
+/// Eigenvectors
+pub type Cache = Array2<f32>;
+
 /// Solves the Schrödinger equation for the first N energy eigenstates
 ///
 /// Generates the second-derivative finite-difference stencil in the position basis. This is then
@@ -263,36 +268,20 @@ flat_output_vect.copy_from_slice(output.data());
 fn solve_schrödinger(
     cfg: &SimConfig,
     potential: &Grid2D<f32>,
-    cache: Option<SimArtefacts>,
+    cache: Option<Cache>,
 ) -> (Vec<f32>, Vec<Grid2D<f32>>) {
-    assert_eq!(cfg.grid_width, potential.ncols());
-
-    let cache = cache.filter(|cache| cache.energies.len() == cfg.n_states);
-    let cache = cache.filter(|cache| cache.potential.ncols() == potential.ncols());
-
-    // Build the Hamiltonian
     let ham = HamiltonianObject::from_potential(potential, cfg);
-
-    // Calculate energy eigenstates
-    //let start = Instant::now();
 
     let eigvects: Vec<Grid2D<f32>>;
     let eigvals: Vec<f32>;
 
     let preconditioner: Array2<f32> = match cache {
         None => Array2::random((ham.ncols(), cfg.n_states), Uniform::new(-1.0, 1.0)),
-        Some(cache) => Array2::from_shape_vec(
-            (ham.ncols(), cfg.n_states),
-            cache
-                .eigenstates
-                .into_iter()
-                .map(|state| state_to_vector(&state))
-                .collect(),
-        ).unwrap(),
+        Some(cache) => cache,
     };
 
     let result = linfa_linalg::lobpcg::lobpcg::<f32, _, _>(
-        |vects| ham.matrix_matrix_prod(vects),
+        |vects| ham.matrix_matrix_prod(vects.to_owned()),
         preconditioner,
         |_| (),
         None,
@@ -316,33 +305,11 @@ fn solve_schrödinger(
         }
         LobpcgResult::Err((e, None)) => panic!("{}", e),
     }
-    //let time = start.elapsed().as_secs_f32();
-    //dbg!(time);
 
     // Sort by energy
     let mut indices: Vec<_> = eigvals.iter().copied().zip(eigvects).collect();
     indices.sort_by(|a, b| a.0.total_cmp(&b.0));
-
     indices.into_iter().unzip()
-    //let (energies, eigvects) = indices.iter().map(|((idx, val), eigve| *val).collect();
-
-    /*
-    // DEBUGGGING
-    let sel_idx = 0;
-    let sel_energy = eig.eigenvalues[sel_idx];
-    let sel_energy_eigenstate = eig.eigenvectors.column(sel_idx);
-    let hpsi = &ham_matrix * sel_energy_eigenstate;
-
-    let expect = sel_energy * sel_energy_eigenstate;
-
-    let percent_err = (hpsi - &expect).abs().component_div(&expect.abs());
-    let avg_err = percent_err.sum() / percent_err.len() as f32;
-
-    //dbg!(percent_err);
-    dbg!(avg_err);
-    dbg!(&eig.eigenvalues[sel_idx]);
-    */
-    //(eigvals, eigvects)
 }
 
 /*
@@ -357,9 +324,6 @@ todo!()
 }
 */
 
-impl Sim {
-    pub fn step(&mut self) {}
-}
 
 #[cfg(test)]
 mod tests {
@@ -386,9 +350,9 @@ impl Default for Nucleus {
 }
 
 fn state_to_vector(state: &Grid2D<f32>) -> Array1<f32> {
-    state.into_shape(state.nrows() * state.ncols()).unwrap()
+    state.clone().into_shape(state.nrows() * state.ncols()).unwrap()
 }
 
 fn vector_to_state(state: &Array1<f32>, cfg: &SimConfig) -> Grid2D<f32> {
-    state.into_shape((cfg.grid_width, cfg.grid_width)).unwrap()
+    state.clone().into_shape((cfg.grid_width, cfg.grid_width)).unwrap()
 }
