@@ -284,6 +284,9 @@ fn solve_schrödinger(
 ) -> (Vec<f32>, Vec<Grid2D<f32>>, Cache) {
     let ham = HamiltonianObject::from_potential(potential, cfg);
 
+    let cache = cache.filter(|p| p.shape()[0] == ham.ncols());
+    let cache = cache.filter(|p| p.shape()[1] == cfg.n_states);
+
     let preconditioner: Array2<f32> = match cache {
         None => Array2::random((ham.ncols(), cfg.n_states), Uniform::new(-1.0, 1.0)),
         Some(cache) => cache,
