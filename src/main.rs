@@ -4,7 +4,7 @@ use image_view::{array_to_imagedata, ImageViewWidget};
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
 use nalgebra::{Point2, Vector2};
-use qdynamics::sim::{EigenAlgorithm, Nucleus, Sim, SimConfig, SimState};
+use qdynamics::sim::{EigenAlgorithm, Nucleus, Sim, SimConfig, SimState, SimArtefacts};
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
@@ -60,6 +60,7 @@ pub struct TemplateApp {
     viewed_eigstate: usize,
     show_probability: bool,
     max_states_is_grid_width: bool,
+    cache: Option<SimArtefacts>,
 }
 
 impl Default for TemplateApp {
@@ -67,10 +68,11 @@ impl Default for TemplateApp {
         let cfg = initial_cfg();
         let edit_state = initial_state(&cfg);
 
-        let sim = Sim::new(cfg.clone(), edit_state.clone());
+        let sim = Sim::new(cfg.clone(), edit_state.clone(), None);
         let img = ImageViewWidget::default();
 
         Self {
+            cache: None,
             edit_initial_state: edit_state,
             sim,
             img,
@@ -209,7 +211,8 @@ impl eframe::App for TemplateApp {
 
 impl TemplateApp {
     fn recalculate(&mut self, ctx: &egui::Context) {
-        self.sim = Sim::new(self.edit_cfg.clone(), self.edit_initial_state.clone());
+        self.sim = Sim::new(self.edit_cfg.clone(), self.edit_initial_state.clone(), self.cache.take());
+        self.cache = Some(self.sim.artefacts.clone());
         self.update_view(ctx);
     }
 

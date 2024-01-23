@@ -69,6 +69,7 @@ pub struct SimState {
 }
 
 /// Data uniquely generated from a SimState
+#[derive(Clone)]
 pub struct SimArtefacts {
     /// Energy eigenstates (psi_n)
     pub eigenstates: Vec<Array2D<f32>>,
@@ -87,8 +88,8 @@ pub struct Sim {
 }
 
 impl Sim {
-    pub fn new(cfg: SimConfig, state: SimState) -> Self {
-        let artefacts = calculate_artefacts(&cfg, &state);
+    pub fn new(cfg: SimConfig, state: SimState, cache: Option<SimArtefacts>) -> Self {
+        let artefacts = calculate_artefacts(&cfg, &state, cache);
 
         Self {
             state,
@@ -98,9 +99,13 @@ impl Sim {
     }
 }
 
-fn calculate_artefacts(cfg: &SimConfig, state: &SimState) -> SimArtefacts {
+fn calculate_artefacts(
+    cfg: &SimConfig,
+    state: &SimState,
+    cache: Option<SimArtefacts>,
+) -> SimArtefacts {
     let potential = calculate_potential(cfg, state);
-    let (energies, eigenstates) = solve_schrödinger(cfg, &potential);
+    let (energies, eigenstates) = solve_schrödinger(cfg, &potential, cache);
 
     SimArtefacts {
         eigenstates,
@@ -272,8 +277,15 @@ flat_output_vect.copy_from_slice(output.data());
 ///
 /// Generates the second-derivative finite-difference stencil in the position basis. This is then
 /// combined with the potential to form the Hamiltonian.
-fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, Vec<Array2D<f32>>) {
+fn solve_schrödinger(
+    cfg: &SimConfig,
+    potential: &Array2D<f32>,
+    cache: Option<SimArtefacts>,
+) -> (Vec<f32>, Vec<Array2D<f32>>) {
     assert_eq!(cfg.grid_width, potential.width());
+
+    let cache = cache.filter(|cache| cache.energies.len() == cfg.n_states);
+    let cache = cache.filter(|cache| cache.potential.width() == potential.width());
 
     // Build the Hamiltonian
     let ham = HamiltonianObject::from_potential(potential, cfg);
@@ -281,8 +293,8 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
     // Calculate energy eigenstates
     //let start = Instant::now();
 
-    let mut eigvects: Vec<Array2D<f32>>;
-    let mut eigvals: Vec<f32>;
+    let eigvects: Vec<Array2D<f32>>;
+    let eigvals: Vec<f32>;
 
     match cfg.eig_algo {
         EigenAlgorithm::Nalgebra => {
@@ -314,8 +326,20 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
             unimplemented!()
         }
         EigenAlgorithm::LobPcg => {
-            use ndarray_rand::{RandomExt, rand_distr::Uniform};
-            let x = ndarray::Array::random((ham.ncols(), cfg.n_states), Uniform::new(-1.0, 1.0));
+            use ndarray_rand::{rand_distr::Uniform, RandomExt};
+            let x = match cache {
+                None => {
+                    ndarray::Array::random((ham.ncols(), cfg.n_states), Uniform::new(-1.0, 1.0))
+                }
+                Some(cache) => {
+                    let vects: Vec<DVector<f32>> = cache
+                        .eigenstates
+                        .into_iter()
+                        .map(|state| array2d_to_nalgebra(&state))
+                        .collect();
+                    nalgebra_to_ndarray(DMatrix::from_columns(vects.as_slice()))
+                }
+            };
 
             let result = linfa_linalg::lobpcg::lobpcg::<f32, _, _>(
                 |vects| {
@@ -347,7 +371,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f32>) -> (Vec<f32>, V
                         })
                         .collect();
                 }
-                _ => todo!(),
+                LobpcgResult::Err((e, None)) => panic!("{}", e),
             }
         }
     };
