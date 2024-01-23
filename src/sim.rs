@@ -491,8 +491,11 @@ impl HamiltonianObject {
 pub fn linear_downscale_by_two(inp: &Array2D<f32>) -> Array2D<f32> {
     let mut outp = Array2D::new(inp.width() / 2, inp.height() / 2);
 
-    for y in 0..inp.height() {
-        for x in 0..inp.width() {
+    dbg!(inp.width());
+    dbg!(inp.height());
+
+    for y in 0..outp.height() {
+        for x in 0..outp.width() {
             let x_base = x * 2;
             let y_base = y * 2;
             outp[(x, y)] = (inp[(x_base, y_base)]
