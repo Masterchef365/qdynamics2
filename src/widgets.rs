@@ -36,16 +36,20 @@ impl ImageViewWidget {
     pub fn show(&mut self, ui: &mut Ui) -> egui::Response {
         if let Some(tex) = self.tex {
             let available = ui.available_size();
-            if let Some(tex_meta) = ui.ctx().tex_manager().read().meta(tex) {
-                let tex_size = Vec2::from(tex_meta.size.map(|v| v as f32));
-                let tex_aspect = tex_size.x / tex_size.y;
-                let image_size_egui = if available.x / available.y < tex_aspect {
-                    vec2(available.x, available.x / tex_aspect)
-                } else {
-                    vec2(available.y / tex_aspect, available.y)
-                };
+            let tex_meta = ui.ctx().tex_manager();
+            let tex_meta = tex_meta.read();
+            let tex_meta = tex_meta.meta(tex).unwrap();
 
-                Frame::canvas(ui.style()).show(ui, |ui| {
+            let tex_size = Vec2::from(tex_meta.size.map(|v| v as f32));
+            let tex_aspect = tex_size.x / tex_size.y;
+            let image_size_egui = if available.x / available.y < tex_aspect {
+                vec2(available.x, available.x / tex_aspect)
+            } else {
+                vec2(available.y / tex_aspect, available.y)
+            };
+
+            Frame::canvas(ui.style())
+                .show(ui, |ui| {
                     let resp = ui.allocate_response(image_size_egui, Sense::click_and_drag());
 
                     let paint = ui.painter();
@@ -73,12 +77,12 @@ impl ImageViewWidget {
                         }
                     }
 
-                    return resp;
-                });
-            }
+                    resp
+                })
+                .inner
+        } else {
+            ui.label("Texture not set, this is an error!")
         }
-
-        ui.label("Texture not set, this is an error!")
     }
 
     pub fn set_state(
