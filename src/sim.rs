@@ -321,12 +321,7 @@ fn solve_schrödinger(
         LobpcgResult::Err((e, None)) => panic!("{}", e),
     }
 
-    // Sort by energy
-    let mut indices: Vec<_> = eigvals.iter().copied().zip(eigvects).collect();
-    indices.sort_by(|a, b| a.0.total_cmp(&b.0));
-    let (sorted_eigvals, sorted_eigvecs) = indices.into_iter().unzip();
-
-    (sorted_eigvals, sorted_eigvecs, cache)
+    (eigvals, eigvects, cache)
 }
 
 impl Default for Nucleus {
