@@ -73,8 +73,8 @@ pub struct SimArtefacts {
 }
 
 pub struct Sim {
-    cfg: SimConfig,
-    state: SimState,
+    pub cfg: SimConfig,
+    pub state: SimState,
     cache: Option<Cache>,
     artefacts: Option<SimArtefacts>,
 }
@@ -87,6 +87,12 @@ impl Sim {
             cache: None,
             artefacts: None,
         }
+    }
+
+    pub fn recalculate(&mut self) {
+        let (artefacts, cache) = calculate_artefacts(&self.cfg, &self.state, self.cache.take());
+        self.cache = Some(cache);
+        self.artefacts = Some(artefacts);
     }
 
     pub fn state(&self) -> &SimState {
@@ -108,15 +114,15 @@ fn calculate_artefacts(
     cfg: &SimConfig,
     state: &SimState,
     cache: Option<Cache>,
-) -> SimArtefacts {
+) -> (SimArtefacts, Cache) {
     let potential = calculate_potential(cfg, state);
-    let (energies, eigenstates) = solve_schrödinger(cfg, &potential, cache);
+    let (energies, eigenstates, cache) = solve_schrödinger(cfg, &potential, cache);
 
-    SimArtefacts {
+    (SimArtefacts {
         eigenstates,
         energies,
         potential,
-    }
+    }, cache)
 }
 
 /// Calculate the electric potential in the position basis
@@ -269,11 +275,8 @@ fn solve_schrödinger(
     cfg: &SimConfig,
     potential: &Grid2D<f32>,
     cache: Option<Cache>,
-) -> (Vec<f32>, Vec<Grid2D<f32>>) {
+) -> (Vec<f32>, Vec<Grid2D<f32>>, Cache) {
     let ham = HamiltonianObject::from_potential(potential, cfg);
-
-    let eigvects: Vec<Grid2D<f32>>;
-    let eigvals: Vec<f32>;
 
     let preconditioner: Array2<f32> = match cache {
         None => Array2::random((ham.ncols(), cfg.n_states), Uniform::new(-1.0, 1.0)),
@@ -290,6 +293,9 @@ fn solve_schrödinger(
         linfa_linalg::lobpcg::Order::Smallest,
     );
 
+    let eigvects: Vec<Grid2D<f32>>;
+    let eigvals: Vec<f32>;
+    let cache;
     match result {
         LobpcgResult::Ok(eig) | LobpcgResult::Err((_, Some(eig))) => {
             eigvals = eig.eigvals.as_slice().unwrap().to_vec();
@@ -302,6 +308,8 @@ fn solve_schrödinger(
                     vector_to_state(&col.to_owned(), cfg)
                 })
                 .collect();
+
+            cache = eig.eigvecs;
         }
         LobpcgResult::Err((e, None)) => panic!("{}", e),
     }
@@ -309,7 +317,9 @@ fn solve_schrödinger(
     // Sort by energy
     let mut indices: Vec<_> = eigvals.iter().copied().zip(eigvects).collect();
     indices.sort_by(|a, b| a.0.total_cmp(&b.0));
-    indices.into_iter().unzip()
+    let (sorted_eigvals, sorted_eigvecs) = indices.into_iter().unzip();
+
+    (sorted_eigvals, sorted_eigvecs, cache)
 }
 
 /*
