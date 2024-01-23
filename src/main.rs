@@ -59,7 +59,7 @@ pub struct TemplateApp {
     img: ImageViewWidget,
     viewed_eigstate: usize,
     show_probability: bool,
-    max_states_is_grid_width: bool,
+    //max_states_is_grid_width: bool,
     cache: Option<SimArtefacts>,
 }
 
@@ -79,7 +79,7 @@ impl Default for TemplateApp {
             viewed_eigstate: 0,
             edit_cfg: cfg,
             show_probability: false,
-            max_states_is_grid_width: true,
+            //max_states_is_grid_width: true,
         }
     }
 }
@@ -103,12 +103,14 @@ impl eframe::App for TemplateApp {
         let mut needs_update = false;
         let mut needs_recalculate = false;
 
+        /*
         if self.max_states_is_grid_width {
             if self.edit_cfg.n_states != self.edit_cfg.grid_width {
                 self.edit_cfg.n_states = self.edit_cfg.grid_width;
                 needs_recalculate = true;
             }
         }
+        */
 
         SidePanel::left("left_panel").show(ctx, |ui| {
             ui.strong("View");
@@ -164,7 +166,7 @@ impl eframe::App for TemplateApp {
                 )
                 .changed();
 
-                ui.checkbox(&mut self.max_states_is_grid_width, "From width");
+                //ui.checkbox(&mut self.max_states_is_grid_width, "From width");
             });
 
             ui.horizontal(|ui| {
