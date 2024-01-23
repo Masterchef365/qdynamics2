@@ -4,10 +4,6 @@ use eigenvalues::{
     davidson::Davidson, lanczos::HermitianLanczos, matrix_operations::MatrixOperations,
     DavidsonCorrection, SpectrumTarget,
 };
-use nalgebra::{
-    ComplexField, DMatrix, DMatrixSlice, DVector, DVectorSlice, MatrixN, Point2, SymmetricEigen,
-    Vector2,
-};
 
 use linfa_linalg::lobpcg::LobpcgResult;
 use ndarray::{Array1, Array2};
@@ -18,7 +14,7 @@ const NUCLEAR_MASS: f32 = 1.0;
 const ELECTRON_MASS: f32 = 1.0;
 const HBAR: f32 = 1.0;
 
-pub type SpatialVector2D = Array2<f32>;
+pub type Grid2D<T> = Array2<T>;
 
 #[derive(Clone)]
 pub struct SimConfig {
@@ -66,11 +62,11 @@ pub struct SimState {
 #[derive(Clone)]
 pub struct SimArtefacts {
     /// Energy eigenstates (psi_n)
-    pub eigenstates: Vec<SpatialVector2D>,
+    pub eigenstates: Vec<Grid2D<f32>>,
     /// Energy levels (E_n)
     pub energies: Vec<f32>,
     /// Map of electric potential due to nuclei
-    pub potential: SpatialVector2D,
+    pub potential: Grid2D<f32>,
     // /// Amount of energy in the classical system at present time
     // pub classical_energy: f32,
 }
@@ -121,7 +117,7 @@ fn calculate_artefacts(
 }
 
 /// Calculate the electric potential in the position basis
-fn calculate_potential(cfg: &SimConfig, state: &SimState) -> SpatialVector2D {
+fn calculate_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
     let grid_positions = grid_positions(cfg);
 
     let v = grid_positions
@@ -139,7 +135,7 @@ fn calculate_potential(cfg: &SimConfig, state: &SimState) -> SpatialVector2D {
         })
         .collect();
 
-    Array2D::from_array(cfg.grid_width, v)
+    Grid2D::from_shape_vec((cfg.grid_width, cfg.grid_width), v).unwrap()
 }
 
 fn softened_potential(r: f32, cfg: &SimConfig) -> f32 {
@@ -147,9 +143,9 @@ fn softened_potential(r: f32, cfg: &SimConfig) -> f32 {
 }
 
 /// World-space positions at grid points
-fn grid_positions(cfg: &SimConfig) -> Array2D<Point2<f32>> {
-    let mut output = Array2D::from_array(
-        cfg.grid_width,
+fn grid_positions(cfg: &SimConfig) -> Grid2D<Point2<f32>> {
+    let mut output = Grid2D::from_shape_vec(
+        (cfg.grid_width, cfg.grid_width),
         vec![Point2::origin(); cfg.grid_width.pow(2)],
     );
 
@@ -178,12 +174,12 @@ fn bounds_check(pt: Point2<i32>, width: i32) -> Option<(usize, usize)> {
 */
 #[derive(Clone)]
 struct HamiltonianObject {
-    potential: SpatialVector2D,
+    potential: Grid2D<f32>,
     cfg: SimConfig,
 }
 
 impl HamiltonianObject {
-    pub fn from_potential(potential: &SpatialVector2D, cfg: &SimConfig) -> Self {
+    pub fn from_potential(potential: &Grid2D<f32>, cfg: &SimConfig) -> Self {
         Self {
             cfg: cfg.clone(),
             // Diagonal includes both the potential AND the stencil centers
@@ -204,7 +200,7 @@ impl HamiltonianObject {
     fn matrix_vector_prod(&self, vs: DVectorSlice<f32>) -> DVector<f32> {
         let psi = vector_to_state(vs, &self.cfg);
 
-        let mut output = SpatialVector2D::zeros((self.cfg.grid_width, self.cfg.grid_width));
+        let mut output = Grid2D::zeros((self.cfg.grid_width, self.cfg.grid_width));
 
         for y in 0..psi.nrows() {
             for x in 0..psi.ncols() {
@@ -257,7 +253,7 @@ potential: &StateVector,
 flat_input_vect: &[Complex64],
 flat_output_vect: &mut [Complex64],
 ) {
-let psi = Array2D::from_array(potential.ncols(), flat_input_vect.to_vec());
+let psi = SpatialVector2D::from_array(potential.ncols(), flat_input_vect.to_vec());
 let output = hamiltonian(cfg, &psi, potential);
 flat_output_vect.copy_from_slice(output.data());
 }
@@ -269,9 +265,9 @@ flat_output_vect.copy_from_slice(output.data());
 /// combined with the potential to form the Hamiltonian.
 fn solve_schrödinger(
     cfg: &SimConfig,
-    potential: &SpatialVector2D,
+    potential: &Grid2D<f32>,
     cache: Option<SimArtefacts>,
-) -> (Vec<f32>, Vec<SpatialVector2D>) {
+) -> (Vec<f32>, Vec<Grid2D<f32>>) {
     assert_eq!(cfg.grid_width, potential.ncols());
 
     let cache = cache.filter(|cache| cache.energies.len() == cfg.n_states);
@@ -283,7 +279,7 @@ fn solve_schrödinger(
     // Calculate energy eigenstates
     //let start = Instant::now();
 
-    let eigvects: Vec<SpatialVector2D>;
+    let eigvects: Vec<Grid2D<f32>>;
     let eigvals: Vec<f32>;
 
     let preconditioner: Array2<f32> = match cache {
@@ -317,7 +313,7 @@ fn solve_schrödinger(
                 .columns()
                 .into_iter()
                 .map(|col| {
-                    nalgebra_to_array2d((&ndarray_to_nalgebra_vect(col.to_owned())).into(), cfg)
+                    vector_to_state(col, cfg)
                 })
                 .collect();
         }
@@ -392,10 +388,10 @@ impl Default for Nucleus {
     }
 }
 
-fn state_to_vector(state: &SpatialVector2D) -> Array1<f32> {
+fn state_to_vector(state: &Grid2D<f32>) -> Array1<f32> {
     state.into_shape(state.nrows() * state.ncols()).unwrap()
 }
 
-fn vector_to_state(state: &Array1<f32>, cfg: &SimConfig) -> SpatialVector2D {
+fn vector_to_state(state: &Array1<f32>, cfg: &SimConfig) -> Grid2D<f32> {
     state.into_shape((cfg.grid_width, cfg.grid_width)).unwrap()
 }
