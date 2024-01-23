@@ -280,7 +280,7 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
     let ham = HamiltonianObject::from_potential(potential, cfg);
 
     // Calculate energy eigenstates
-    let start = Instant::now();
+    //let start = Instant::now();
 
     let mut eigvects: Vec<Array2D<f64>>;
     let mut eigvals: Vec<f64>;
@@ -349,8 +349,8 @@ fn solve_schrödinger(cfg: &SimConfig, potential: &Array2D<f64>) -> (Vec<f64>, V
             }
         }
     };
-    let time = start.elapsed().as_secs_f64();
-    dbg!(time);
+    //let time = start.elapsed().as_secs_f64();
+    //dbg!(time);
 
     // Sort by energy
     let mut indices: Vec<_> = eigvals.iter().copied().zip(eigvects).collect();
