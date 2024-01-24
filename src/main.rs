@@ -58,6 +58,7 @@ pub struct TemplateApp {
     sim: Sim,
     img: ImageViewWidget,
     view_cfg: StateViewConfig,
+    paused: bool,
 }
 
 impl Default for TemplateApp {
@@ -69,6 +70,7 @@ impl Default for TemplateApp {
         let img = ImageViewWidget::default();
 
         Self {
+            paused: true,
             sim,
             img,
             view_cfg: StateViewConfig::default(),
@@ -91,9 +93,13 @@ impl TemplateApp {
 impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.sim.step();
+        ctx.request_repaint();
 
-        let mut needs_update = false;
+        if !self.paused {
+            self.sim.step(self.view_cfg.viewed_eigenstate);
+        }
+
+        let mut needs_update = true;
         let mut needs_recalculate = false;
 
         /*
@@ -106,7 +112,13 @@ impl eframe::App for TemplateApp {
         */
 
         SidePanel::left("left_panel").show(ctx, |ui| {
+            if ui.button("Reset").clicked() {
+                *self = Self::default();
+            }
+
             if let Some(artefacts) = self.sim.artefacts() {
+                ui.checkbox(&mut self.paused, "Paused");
+
                 ui.strong("View");
                 let energies = &artefacts.energies;
                 needs_update |= ui
