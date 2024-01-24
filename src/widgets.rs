@@ -66,7 +66,8 @@ impl ImageViewWidget {
                     if let (Some(state), Some(art)) = (&self.state, &self.artefact) {
                         let sim_coord_to_egui_coord = |pt: egui::Vec2| {
                             resp.rect.min
-                                + ((pt + egui::Vec2::splat(0.5)) * image_size_egui)
+                                //+ ((pt + egui::Vec2::splat(0.5)) * image_size_egui)
+                                + (pt * image_size_egui)
                                     / egui::Vec2::from(tex_meta.size.map(|sz| sz as f32))
                         };
 
@@ -140,6 +141,8 @@ pub fn nucleus_editor(ui: &mut Ui, nuclei: &mut Vec<Nucleus>) -> bool {
         .show(ui, |ui| {
             for (idx, nucleus) in nuclei.iter_mut().enumerate() {
                 ui.horizontal(|ui| {
+                    ui.label(format!("{:>3} ", idx));
+
                     needs_recalculate |= ui
                         .add(DragValue::new(&mut nucleus.pos.x).prefix("x: ").speed(1e-1))
                         .changed();

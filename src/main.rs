@@ -251,7 +251,7 @@ fn initial_state(cfg: &SimConfig) -> SimState {
 const N: usize = 20;
 fn initial_cfg() -> SimConfig {
     SimConfig {
-        potental_mode: PotentialMode::Kqr,
+        potental_mode: PotentialMode::Delta,
         dx: 1.0,
         grid_width: N,
         v0: -1.,
