@@ -3,7 +3,7 @@ use glam::Vec2;
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
-use qdynamics::sim::{Nucleus, Sim, SimArtefacts, SimConfig, SimState, PotentialMode};
+use qdynamics::sim::{Nucleus, PotentialMode, Sim, SimArtefacts, SimConfig, SimState};
 use widgets::{
     display_imagedata, electric_editor, nucleus_editor, ImageViewWidget, StateViewConfig,
 };
@@ -144,8 +144,20 @@ impl eframe::App for TemplateApp {
                 .changed();
 
             ui.horizontal(|ui| {
-                needs_recalculate |= ui.selectable_value(&mut self.sim.cfg.potental_mode, PotentialMode::Delta, "delta(r-r')").changed();
-                needs_recalculate |= ui.selectable_value(&mut self.sim.cfg.potental_mode, PotentialMode::Kqr, "kq / (r + soft)").changed();
+                needs_recalculate |= ui
+                    .selectable_value(
+                        &mut self.sim.cfg.potental_mode,
+                        PotentialMode::Delta,
+                        "delta(r-r')",
+                    )
+                    .changed();
+                needs_recalculate |= ui
+                    .selectable_value(
+                        &mut self.sim.cfg.potental_mode,
+                        PotentialMode::Kqr,
+                        "kq / (r + soft)",
+                    )
+                    .changed();
             });
 
             needs_recalculate |= ui
@@ -206,7 +218,15 @@ impl eframe::App for TemplateApp {
         }
 
         CentralPanel::default().show(ctx, |ui| {
-            self.img.show(ui, &self.view_cfg);
+            if let Some(art) = &self.sim.artefacts {
+                self.img.show(
+                    "Main image".into(),
+                    ui,
+                    &self.view_cfg,
+                    &mut self.sim.state,
+                    art,
+                );
+            }
         });
     }
 }
@@ -224,13 +244,14 @@ impl TemplateApp {
                 .viewed_eigenstate
                 .min(artefacts.energies.len() - 1);
 
-            self.img.set_state(
+            /*self.img.set_state(
                 "Spronkus".into(),
                 ctx,
                 &self.view_cfg,
                 &self.sim.state(),
                 artefacts,
             );
+            */
         }
     }
 }

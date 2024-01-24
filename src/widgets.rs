@@ -27,14 +27,30 @@ impl Default for StateViewConfig {
 #[derive(Default)]
 pub struct ImageViewWidget {
     tex: Option<TextureId>,
-    state: Option<SimState>,
-    artefact: Option<SimArtefacts>,
 }
 
 impl ImageViewWidget {
     const OPTS: TextureOptions = TextureOptions::NEAREST;
 
-    pub fn show(&mut self, ui: &mut Ui, view: &StateViewConfig) -> egui::Response {
+    pub fn show(
+        &mut self,
+        name: String,
+        ui: &mut Ui,
+        view: &StateViewConfig,
+        state: &mut SimState,
+        art: &SimArtefacts,
+    ) -> egui::Response {
+        let image = display_imagedata(view, art);
+
+        let ctx = ui.ctx();
+        if let Some(tex) = self.tex {
+            ctx.tex_manager()
+                .write()
+                .set(tex, ImageDelta::full(image, Self::OPTS))
+        } else {
+            self.tex = Some(ctx.tex_manager().write().alloc(name, image, Self::OPTS))
+        }
+
         if let Some(tex) = self.tex {
             let available = ui.available_size();
             let tex_meta = ui.ctx().tex_manager();
@@ -63,35 +79,62 @@ impl ImageViewWidget {
                         Color32::WHITE,
                     );
 
-                    if let (Some(state), Some(art)) = (&self.state, &self.artefact) {
-                        let sim_coord_to_egui_coord = |pt: egui::Vec2| {
-                            resp.rect.min
+                    let tex_size = egui::Vec2::from(tex_meta.size.map(|sz| sz as f32));
+
+                    let sim_coord_to_egui_coord = |sim_coord: glam::Vec2| {
+                        resp.rect.min
                                 //+ ((pt + egui::Vec2::splat(0.5)) * image_size_egui)
-                                + (pt * image_size_egui)
-                                    / egui::Vec2::from(tex_meta.size.map(|sz| sz as f32))
-                        };
+                                + (egui::Vec2::from(sim_coord.to_array()) * image_size_egui)
+                                    / tex_size
+                    };
 
-                        // Draw nuclei
-                        for nucleus in &state.nuclei {
-                            paint.circle(
-                                sim_coord_to_egui_coord(egui::Vec2::from(nucleus.pos.to_array())),
-                                7.0,
-                                Color32::GREEN,
-                                Stroke::NONE,
-                            );
-                        }
+                    /*
+                    let egui_coord_to_sim_coord = |egui_coord: egui::Pos2| {
+                        (egui_coord - resp.rect.min) * tex_size / image_size_egui
+                    };
+                    */
 
-                        // Draw arrows for direction
-                        let psi = &art.eigenstates[view.viewed_eigenstate];
-                        for y in 0..psi.nrows() {
-                            for x in 0..psi.ncols() {
-                                let force = art.ham.compute_force_at(x, y, psi);
-                                paint.arrow(
-                                    sim_coord_to_egui_coord(egui::Vec2::new(x as f32, y as f32)),
-                                    egui::Vec2::new(force.x, force.y) * 40.,
-                                    Stroke::new(2.0, Color32::DARK_GREEN),
-                                );
+                    let egui_vect_to_sim_vect = |egui_vect: egui::Vec2| {
+                        let v = egui_vect * tex_size / image_size_egui;
+                        glam::Vec2::new(v.x, v.y)
+                    };
+
+                    // Move nuclei
+                    if resp.dragged() {
+                        if let Some(pointer_pos) = resp.interact_pointer_pos() {
+                            for nucleus in &mut state.nuclei {
+                                let screen_pos = sim_coord_to_egui_coord(nucleus.pos);
+                                let screen_dist = screen_pos - pointer_pos;
+
+                                let drag_radius = 30.0;
+                                if screen_dist.length() < drag_radius {
+                                    nucleus.pos += egui_vect_to_sim_vect(resp.drag_delta());
+                                    break;
+                                }
                             }
+                        }
+                    }
+
+                    // Draw nuclei
+                    for nucleus in &state.nuclei {
+                        paint.circle(
+                            sim_coord_to_egui_coord(nucleus.pos),
+                            7.0,
+                            Color32::GREEN,
+                            Stroke::NONE,
+                        );
+                    }
+
+                    // Draw arrows for direction
+                    let psi = &art.eigenstates[view.viewed_eigenstate];
+                    for y in 0..psi.nrows() {
+                        for x in 0..psi.ncols() {
+                            let force = art.ham.compute_force_at(x, y, psi);
+                            paint.arrow(
+                                sim_coord_to_egui_coord(glam::Vec2::new(x as f32, y as f32)),
+                                egui::Vec2::new(force.x, force.y) * 40.,
+                                Stroke::new(2.0, Color32::DARK_GREEN),
+                            );
                         }
                     }
 
@@ -103,6 +146,7 @@ impl ImageViewWidget {
         }
     }
 
+    /*
     pub fn set_state(
         &mut self,
         name: String,
@@ -123,6 +167,7 @@ impl ImageViewWidget {
             self.tex = Some(ctx.tex_manager().write().alloc(name, image, Self::OPTS))
         }
     }
+    */
 
     pub fn tex(&self) -> Option<TextureId> {
         self.tex
