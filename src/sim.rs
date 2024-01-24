@@ -33,6 +33,8 @@ pub struct SimConfig {
     pub num_solver_iters: usize,
     // /// Mass of each nucleus
     pub tolerance: f32,
+
+    pub potental_mode: PotentialMode,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -74,6 +76,12 @@ pub struct Sim {
     pub artefacts: Option<SimArtefacts>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PotentialMode {
+    Delta,
+    Kqr,
+}
+
 impl Sim {
     pub fn new(cfg: SimConfig, init_state: SimState) -> Self {
         let mut inst = Self {
@@ -112,7 +120,11 @@ fn calculate_artefacts(
     state: &SimState,
     cache: Option<Cache>,
 ) -> (SimArtefacts, Cache) {
-    let potential = calculate_potential(cfg, state);
+    let potential = match cfg.potental_mode {
+        PotentialMode::Delta => calculate_delta_potential(cfg, state),
+        PotentialMode::Kqr => calculate_potential_r_squared(cfg, state),
+    };
+
     let ham = HamiltonianObject::from_potential(potential, cfg);
     let (energies, eigenstates, cache) = solve_schrödinger(cfg, &ham, cache);
 
@@ -127,7 +139,19 @@ fn calculate_artefacts(
 }
 
 /// Calculate the electric potential in the position basis
-fn calculate_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
+fn calculate_delta_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
+    let mut pot = Grid2D::zeros((cfg.grid_width, cfg.grid_width));
+    for nucleus in &state.nuclei {
+        if let Some(grid_coord) = bounds_check(nucleus.pos.x as i32, nucleus.pos.y as i32, &pot) {
+            pot[grid_coord] += cfg.v0;
+        }
+    }
+
+    pot
+}
+
+/// Calculate the electric potential in the position basis
+fn calculate_potential_r_squared(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
     let grid_positions = grid_positions(cfg);
 
     let v = grid_positions

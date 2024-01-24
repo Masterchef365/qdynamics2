@@ -3,7 +3,7 @@ use glam::Vec2;
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
-use qdynamics::sim::{Nucleus, Sim, SimArtefacts, SimConfig, SimState};
+use qdynamics::sim::{Nucleus, Sim, SimArtefacts, SimConfig, SimState, PotentialMode};
 use widgets::{
     display_imagedata, electric_editor, nucleus_editor, ImageViewWidget, StateViewConfig,
 };
@@ -134,6 +134,11 @@ impl eframe::App for TemplateApp {
                 )
                 .changed();
 
+            ui.horizontal(|ui| {
+                needs_recalculate |= ui.selectable_value(&mut self.sim.cfg.potental_mode, PotentialMode::Delta, "delta(r-r')").changed();
+                needs_recalculate |= ui.selectable_value(&mut self.sim.cfg.potental_mode, PotentialMode::Kqr, "kq / (r + soft)").changed();
+            });
+
             needs_recalculate |= ui
                 .add(
                     DragValue::new(&mut self.sim.cfg.grid_width)
@@ -237,6 +242,7 @@ fn initial_state(cfg: &SimConfig) -> SimState {
 const N: usize = 20;
 fn initial_cfg() -> SimConfig {
     SimConfig {
+        potental_mode: PotentialMode::Kqr,
         dx: 1.0,
         grid_width: N,
         v0: -1.,
