@@ -113,6 +113,8 @@ fn calculate_artefacts(
     cache: Option<Cache>,
 ) -> (SimArtefacts, Cache) {
     let potential = calculate_potential(cfg, state);
+    let sum = potential.iter().sum::<f32>();
+    dbg!(sum);
     let ham = HamiltonianObject::from_potential(potential, cfg);
     let (energies, eigenstates, cache) = solve_schrödinger(cfg, &ham, cache);
 
@@ -137,8 +139,16 @@ fn calculate_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
                 .nuclei
                 .iter()
                 .map(|nucleus| {
-                    let r = (nucleus.pos - *grid_pos).length();
-                    softened_potential(r, cfg)
+                    if 
+                        nucleus.pos.x as i32 == grid_pos.x as i32 
+                        && nucleus.pos.y as i32 == grid_pos.y as i32 
+                    {
+                        cfg.v0
+                    } else {
+                        0.0
+                    }
+                    //let r = (nucleus.pos - *grid_pos).length();
+                    //softened_potential(r, cfg)
                 })
                 .sum()
         })
@@ -271,7 +281,7 @@ impl HamiltonianObject {
             }
         }
 
-        Vec2::new(sum_x, sum_y)
+        psi[(x, y)] * Vec2::new(sum_x, sum_y)
     }
 }
 
