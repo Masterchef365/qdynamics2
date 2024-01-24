@@ -286,13 +286,18 @@ impl HamiltonianObject {
         let mut sum_x: f32 = 0.;
         let mut sum_y: f32 = 0.;
 
+        // We want to compute the force on the proton, so that's the negative gradient of the
+        // expectation value of energy for the electron. BUT the hamiltonian has a negative sign 
+        // So we are adding the finite difference. 
+        // (-grad/grad x)(-grad^2/grad x ^2) = grad^3/gradx^3
+
         for (offset, coefficient) in (-2..=2).zip(&[1. / 2., -1., 0., 1., -1. / 2.]) {
             if let Some(grid_coord) = bounds_check(x as i32 + offset, y as i32, &psi) {
-                sum_x -= psi[grid_coord] * coefficient;
+                sum_x += psi[grid_coord] * coefficient;
             }
 
             if let Some(grid_coord) = bounds_check(x as i32, y as i32 + offset, &psi) {
-                sum_y -= psi[grid_coord] * coefficient;
+                sum_y += psi[grid_coord] * coefficient;
             }
         }
 
