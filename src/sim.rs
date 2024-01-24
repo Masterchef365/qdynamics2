@@ -136,8 +136,8 @@ fn calculate_artefacts(
     cache: Option<Cache>,
 ) -> (SimArtefacts, Cache) {
     let potential = calculate_potential(cfg, state);
-    let sum = potential.iter().sum::<f32>();
-    dbg!(sum);
+    //let sum = potential.iter().sum::<f32>();
+    //dbg!(sum);
     let ham = HamiltonianObject::from_potential(potential, cfg);
     let (energies, eigenstates, cache) = solve_schrödinger(cfg, &ham, cache);
 
@@ -153,31 +153,41 @@ fn calculate_artefacts(
 
 /// Calculate the electric potential in the position basis
 fn calculate_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
-    let grid_positions = grid_positions(cfg);
+    let mut potential = Grid2D::zeros((cfg.grid_width, cfg.grid_width));
 
-    let v = grid_positions
-        .iter()
-        .map(|grid_pos| {
-            state
-                .nuclei
-                .iter()
-                .map(|nucleus| {
-                    if 
-                        nucleus.pos.x as i32 == grid_pos.x as i32 
-                        && nucleus.pos.y as i32 == grid_pos.y as i32 
-                    {
-                        cfg.v0
-                    } else {
-                        0.0
-                    }
-                    //let r = (nucleus.pos - *grid_pos).length();
-                    //softened_potential(r, cfg)
-                })
-                .sum()
-        })
-        .collect();
+    for nucleus in &state.nuclei {
+        let [tl_x, tl_y] = nucleus.pos.to_array().map(|p| p as i32);
+        let fract = nucleus.pos.fract();
 
-    Grid2D::from_shape_vec((cfg.grid_width, cfg.grid_width), v).unwrap()
+        let parts = [
+            (0, 0, 1. - fract.x, 1. - fract.y),
+            (1, 0, fract.x, 1. - fract.y),
+            (0, 1, 1. - fract.x, fract.y),
+            (1, 1, fract.x, fract.y),
+        ];
+
+        // See how many samples will be in bounds
+        let mut sum = 0.0;
+        let mut any = false;
+        for (off_x, off_y, _, _) in parts {
+            if bounds_check(tl_x + off_x, tl_y + off_y, &potential).is_some() {
+                sum += 1./4.;
+                any = true;
+            }
+        }
+        if !any {
+            continue;
+        }
+
+        // Accumulate samples into adjacent points
+        for (off_x, off_y, interp_x, interp_y) in parts {
+            if let Some(grid_pos) = bounds_check(tl_x + off_x, tl_y + off_y, &potential) {
+                potential[grid_pos] += interp_x * interp_y * cfg.v0 / sum;
+            }
+        }
+    }
+
+    potential
 }
 
 fn softened_potential(r: f32, cfg: &SimConfig) -> f32 {

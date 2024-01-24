@@ -66,7 +66,8 @@ impl ImageViewWidget {
                     if let (Some(state), Some(art)) = (&self.state, &self.artefact) {
                         let sim_coord_to_egui_coord = |pt: egui::Vec2| {
                             resp.rect.min
-                                + ((pt + egui::Vec2::splat(0.5)) * image_size_egui)
+                                 + ((pt + egui::Vec2::splat(0.5)) * image_size_egui)
+                                //+ (pt * image_size_egui)
                                     / egui::Vec2::from(tex_meta.size.map(|sz| sz as f32))
                         };
 
