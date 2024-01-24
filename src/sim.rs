@@ -63,6 +63,8 @@ pub struct SimArtefacts {
     pub energies: Vec<f32>,
     /// Map of electric potential due to nuclei
     pub potential: Grid2D<f32>,
+    /// Hamiltonian object
+    pub ham: HamiltonianObject,
     // /// Amount of energy in the classical system at present time
     // pub classical_energy: f32,
 }
@@ -113,13 +115,15 @@ fn calculate_artefacts(
     cache: Option<Cache>,
 ) -> (SimArtefacts, Cache) {
     let potential = calculate_potential(cfg, state);
-    let (energies, eigenstates, cache) = solve_schrödinger(cfg, &potential, cache);
+    let ham = HamiltonianObject::from_potential(&potential, cfg);
+    let (energies, eigenstates, cache) = solve_schrödinger(cfg, &ham, cache);
 
     (
         SimArtefacts {
             eigenstates,
             energies,
             potential,
+            ham,
         },
         cache,
     )
@@ -182,8 +186,8 @@ fn bounds_check(pt_x: i32, pt_y: i32, width: i32) -> Option<(usize, usize)> {
 ///                   | 0   k   0 |
 */
 #[derive(Clone)]
-struct HamiltonianObject {
-    potential: Grid2D<f32>,
+pub struct HamiltonianObject {
+    pub potential: Grid2D<f32>,
     cfg: SimConfig,
 }
 
@@ -206,36 +210,36 @@ impl HamiltonianObject {
         self.ncols()
     }
 
+    fn value_at(&self, x: usize, y: usize, psi: &Grid2D<f32>) -> f32 {
+        let center_grid_coord = (x, y);
+
+        let mut sum = 0.0;
+
+        let pot = self.potential[center_grid_coord];
+
+        for (off, coeff) in [
+            ((-1, 0), 1.0),
+            ((1, 0), 1.0),
+            ((0, 1), 1.0),
+            ((0, -1), 1.0),
+            ((0, 0), pot - 4.0),
+        ] {
+            if let Some(grid_coord) =
+                bounds_check(x as i32 + off.0, y as i32 + off.1, psi.ncols() as i32)
+            {
+                sum += coeff * psi[grid_coord];
+            }
+        }
+
+        sum
+    }
+
     fn matrix_vector_prod(&self, psi: Grid2D<f32>) -> Grid2D<f32> {
         let mut output = Grid2D::zeros((self.cfg.grid_width, self.cfg.grid_width));
 
         for y in 0..psi.nrows() {
             for x in 0..psi.ncols() {
-                let center_grid_coord = (x, y);
-
-                let mut sum = 0.0;
-
-                let pot = self.potential[center_grid_coord];
-
-                for (off, coeff) in [
-                    ((-1, 0), 1.0),
-                    ((1, 0), 1.0),
-                    ((0, 1), 1.0),
-                    ((0, -1), 1.0),
-                    ((0, 0), pot - 4.0),
-                    //(Vec2::new(0, 0), 1.0),
-                ] {
-                    if let Some(grid_coord) =
-                        bounds_check(x as i32 + off.0, y as i32 + off.1, psi.ncols() as i32)
-                    {
-                        sum += coeff * psi[grid_coord];
-                    }
-                }
-
-                let kinetic = sum; // * (-HBAR / ELECTRON_MASS / 2.0 / self.cfg.dx.powi(2));
-
-                //output[center_grid_coord] = kinetic; //kinetic + self.potential[center_grid_coord];
-                output[center_grid_coord] = kinetic; //kinetic + self.potential[center_grid_coord];
+                output[(x, y)] = self.value_at(x, y, &psi);
             }
         }
 
@@ -250,6 +254,8 @@ impl HamiltonianObject {
         }
         mtx
     }
+
+    //fn compute_force_at(&self, x: usize, y: usize, psi: Grid2D<f32>) -> Vec2 {}
 }
 
 /*
@@ -274,11 +280,9 @@ pub type Cache = Array2<f32>;
 /// combined with the potential to form the Hamiltonian.
 fn solve_schrödinger(
     cfg: &SimConfig,
-    potential: &Grid2D<f32>,
+    ham: &HamiltonianObject,
     cache: Option<Cache>,
 ) -> (Vec<f32>, Vec<Grid2D<f32>>, Cache) {
-    let ham = HamiltonianObject::from_potential(potential, cfg);
-
     let cache = cache.filter(|p| p.shape()[0] == ham.ncols());
     let cache = cache.filter(|p| p.shape()[1] == cfg.n_states);
 
@@ -330,13 +334,9 @@ impl Default for Nucleus {
 
 fn state_to_vector(state: Grid2D<f32>) -> Array1<f32> {
     let num_elem = state.nrows() * state.ncols();
-    state
-        .into_shape(num_elem)
-        .unwrap()
+    state.into_shape(num_elem).unwrap()
 }
 
 fn vector_to_state(state: Array1<f32>, cfg: &SimConfig) -> Grid2D<f32> {
-    state
-        .into_shape((cfg.grid_width, cfg.grid_width))
-        .unwrap()
+    state.into_shape((cfg.grid_width, cfg.grid_width)).unwrap()
 }
