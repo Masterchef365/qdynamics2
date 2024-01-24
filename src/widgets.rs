@@ -116,23 +116,26 @@ pub fn nucleus_editor(ui: &mut Ui, nuclei: &mut Vec<Nucleus>) -> bool {
     // Just nuclei for now
     let mut delete = None;
 
-    ScrollArea::vertical().id_source("Nuclei").max_height(200.).show(ui, |ui| {
-        for (idx, nucleus) in nuclei.iter_mut().enumerate() {
-            ui.horizontal(|ui| {
-                needs_recalculate |= ui
-                    .add(DragValue::new(&mut nucleus.pos.x).prefix("x: ").speed(1e-1))
-                    .changed();
-                needs_recalculate |= ui
-                    .add(DragValue::new(&mut nucleus.pos.y).prefix("y: ").speed(1e-1))
-                    .changed();
+    ScrollArea::vertical()
+        .id_source("Nuclei")
+        .max_height(200.)
+        .show(ui, |ui| {
+            for (idx, nucleus) in nuclei.iter_mut().enumerate() {
+                ui.horizontal(|ui| {
+                    needs_recalculate |= ui
+                        .add(DragValue::new(&mut nucleus.pos.x).prefix("x: ").speed(1e-1))
+                        .changed();
+                    needs_recalculate |= ui
+                        .add(DragValue::new(&mut nucleus.pos.y).prefix("y: ").speed(1e-1))
+                        .changed();
 
-                if ui.button("Delete").clicked() {
-                    delete = Some(idx);
-                    needs_recalculate = true;
-                }
-            });
-        }
-    });
+                    if ui.button("Delete").clicked() {
+                        delete = Some(idx);
+                        needs_recalculate = true;
+                    }
+                });
+            }
+        });
 
     if let Some(idx) = delete {
         nuclei.remove(idx);
@@ -147,32 +150,42 @@ pub fn nucleus_editor(ui: &mut Ui, nuclei: &mut Vec<Nucleus>) -> bool {
     needs_recalculate
 }
 
-pub fn electric_editor(ui: &mut Ui, view: &mut StateViewConfig, state: &mut SimState, artefacts: Option<&SimArtefacts>) -> bool {
+pub fn electric_editor(
+    ui: &mut Ui,
+    view: &mut StateViewConfig,
+    state: &mut SimState,
+    artefacts: Option<&SimArtefacts>,
+) -> bool {
     let mut needs_update = false;
 
-    ScrollArea::vertical().id_source("Electrics").max_height(200.).show(ui, |ui| {
-        for (idx, coeff) in state.coeffs.iter_mut().enumerate() {
-            if let Some(art) = artefacts {
-                if idx >= art.energies.len() {
-                    break;
-                }
-            }
-
-            ui.horizontal(|ui| {
-                ui.label(format!("{:>3} ", idx));
-
-                needs_update |= ui.add(DragValue::new(coeff).prefix("Coeff: ")).changed();
-
-                needs_update |= ui.radio_value(&mut view.viewed_eigenstate, idx, "View").changed();
-
+    ScrollArea::vertical()
+        .id_source("Electrics")
+        .max_height(200.)
+        .show(ui, |ui| {
+            for (idx, coeff) in state.coeffs.iter_mut().enumerate() {
                 if let Some(art) = artefacts {
-                    if let Some(energy) = art.energies.get(idx) {
-                        ui.label(format!("Energy: {}", energy));
+                    if idx >= art.energies.len() {
+                        break;
                     }
                 }
-            });
-        }
-    });
+
+                ui.horizontal(|ui| {
+                    ui.label(format!("{:>3} ", idx));
+
+                    needs_update |= ui.add(DragValue::new(coeff).prefix("Coeff: ")).changed();
+
+                    needs_update |= ui
+                        .radio_value(&mut view.viewed_eigenstate, idx, "View")
+                        .changed();
+
+                    if let Some(art) = artefacts {
+                        if let Some(energy) = art.energies.get(idx) {
+                            ui.label(format!("Energy: {}", energy));
+                        }
+                    }
+                });
+            }
+        });
 
     needs_update
 }

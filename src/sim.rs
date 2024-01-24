@@ -1,8 +1,4 @@
-
-
-use eigenvalues::{
-    matrix_operations::MatrixOperations,
-};
+use eigenvalues::matrix_operations::MatrixOperations;
 use glam::Vec2;
 
 use linfa_linalg::lobpcg::LobpcgResult;
@@ -333,9 +329,15 @@ impl Default for Nucleus {
 }
 
 fn state_to_vector(state: &Grid2D<f32>) -> Array1<f32> {
-    state.clone().into_shape(state.nrows() * state.ncols()).unwrap()
+    state
+        .clone()
+        .into_shape(state.nrows() * state.ncols())
+        .unwrap()
 }
 
 fn vector_to_state(state: &Array1<f32>, cfg: &SimConfig) -> Grid2D<f32> {
-    state.clone().into_shape((cfg.grid_width, cfg.grid_width)).unwrap()
+    state
+        .clone()
+        .into_shape((cfg.grid_width, cfg.grid_width))
+        .unwrap()
 }

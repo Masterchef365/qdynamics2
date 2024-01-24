@@ -4,7 +4,9 @@ use glam::Vec2;
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
 use qdynamics::sim::{Nucleus, Sim, SimArtefacts, SimConfig, SimState};
-use widgets::{StateViewConfig, display_imagedata, ImageViewWidget, nucleus_editor, electric_editor};
+use widgets::{
+    display_imagedata, electric_editor, nucleus_editor, ImageViewWidget, StateViewConfig,
+};
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
@@ -113,7 +115,10 @@ impl eframe::App for TemplateApp {
                             .clamp_range(0..=energies.len() - 1),
                     )
                     .changed();
-                ui.label(format!("Energy: {}", energies[self.view_cfg.viewed_eigenstate]));
+                ui.label(format!(
+                    "Energy: {}",
+                    energies[self.view_cfg.viewed_eigenstate]
+                ));
                 needs_update |= ui
                     .checkbox(&mut self.view_cfg.show_probability, "Show probability")
                     .changed();
@@ -171,7 +176,12 @@ impl eframe::App for TemplateApp {
 
             ui.separator();
             ui.strong("Energy levels");
-            needs_update |= electric_editor(ui, &mut self.view_cfg, &mut self.sim.state, self.sim.artefacts.as_ref());
+            needs_update |= electric_editor(
+                ui,
+                &mut self.view_cfg,
+                &mut self.sim.state,
+                self.sim.artefacts.as_ref(),
+            );
         });
 
         if needs_recalculate {
@@ -195,10 +205,17 @@ impl TemplateApp {
     fn update_view(&mut self, ctx: &egui::Context) {
         if let Some(artefacts) = self.sim.artefacts() {
             self.view_cfg.viewed_eigenstate = self
-                .view_cfg.viewed_eigenstate
+                .view_cfg
+                .viewed_eigenstate
                 .min(artefacts.energies.len() - 1);
 
-            self.img.set_state("Spronkus".into(), ctx, &self.view_cfg, &self.sim.state(), artefacts);
+            self.img.set_state(
+                "Spronkus".into(),
+                ctx,
+                &self.view_cfg,
+                &self.sim.state(),
+                artefacts,
+            );
         }
     }
 }
