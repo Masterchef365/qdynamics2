@@ -211,23 +211,23 @@ impl eframe::App for TemplateApp {
             );
         });
 
-        if needs_recalculate {
-            self.recalculate(ctx);
-        } else if needs_update {
-            self.update_view(ctx);
-        }
-
         CentralPanel::default().show(ctx, |ui| {
             if let Some(art) = &self.sim.artefacts {
-                self.img.show(
+                needs_recalculate |= self.img.show(
                     "Main image".into(),
                     ui,
                     &self.view_cfg,
                     &mut self.sim.state,
                     art,
-                );
+                ).dragged();
             }
         });
+
+        if needs_recalculate {
+            self.recalculate(ctx);
+        } else if needs_update {
+            self.update_view(ctx);
+        }
     }
 }
 
