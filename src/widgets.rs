@@ -53,7 +53,8 @@ impl ImageViewWidget {
                     let resp = ui.allocate_response(image_size_egui, Sense::click_and_drag());
 
                     // Draw background image
-                    let paint = ui.painter();
+                    let paint = ui.painter(); // TODO: use clipping painter_at(). This is nice for
+                                              // debugging as is though...
                     paint.image(
                         tex,
                         resp.rect,
