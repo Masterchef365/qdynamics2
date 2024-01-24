@@ -151,6 +151,11 @@ pub fn nucleus_editor(ui: &mut Ui, nuclei: &mut Vec<Nucleus>) -> bool {
                         delete = Some(idx);
                         needs_recalculate = true;
                     }
+
+                    if ui.button("Stop").clicked() {
+                        nucleus.vel = glam::Vec2::ZERO;
+                        needs_recalculate = true;
+                    }
                 });
             }
         });

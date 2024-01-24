@@ -115,6 +115,14 @@ impl Sim {
             if let Some((x, y)) = bounds_check(nucleus.pos.x as i32, nucleus.pos.y as i32, psi) {
                 let force = art.ham.compute_force_at(x, y, psi);
                 nucleus.vel += force * dt / NUCLEAR_MASS;
+            } else {
+                if nucleus.pos.x < 0.0 || nucleus.pos.x >= psi.ncols() as f32 {
+                    nucleus.vel.x *= -1.0;
+                }
+
+                if nucleus.pos.y < 0.0 || nucleus.pos.y >= psi.nrows() as f32 {
+                    nucleus.vel.y *= -1.0;
+                }
             }
 
             nucleus.pos += nucleus.vel * dt;
