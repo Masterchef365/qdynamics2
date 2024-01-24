@@ -106,7 +106,7 @@ impl ImageViewWidget {
                                 let screen_pos = sim_coord_to_egui_coord(nucleus.pos);
                                 let screen_dist = screen_pos - pointer_pos;
 
-                                let drag_radius = 30.0;
+                                let drag_radius = 20.0;
                                 if screen_dist.length() < drag_radius {
                                     nucleus.pos += egui_vect_to_sim_vect(resp.drag_delta());
                                     break;
