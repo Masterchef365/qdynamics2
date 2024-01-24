@@ -61,8 +61,6 @@ pub struct SimArtefacts {
     pub eigenstates: Vec<Grid2D<f32>>,
     /// Energy levels (E_n)
     pub energies: Vec<f32>,
-    /// Map of electric potential due to nuclei
-    pub potential: Grid2D<f32>,
     /// Hamiltonian object
     pub ham: HamiltonianObject,
     // /// Amount of energy in the classical system at present time
@@ -115,14 +113,13 @@ fn calculate_artefacts(
     cache: Option<Cache>,
 ) -> (SimArtefacts, Cache) {
     let potential = calculate_potential(cfg, state);
-    let ham = HamiltonianObject::from_potential(&potential, cfg);
+    let ham = HamiltonianObject::from_potential(potential, cfg);
     let (energies, eigenstates, cache) = solve_schrödinger(cfg, &ham, cache);
 
     (
         SimArtefacts {
             eigenstates,
             energies,
-            potential,
             ham,
         },
         cache,
@@ -192,11 +189,11 @@ pub struct HamiltonianObject {
 }
 
 impl HamiltonianObject {
-    pub fn from_potential(potential: &Grid2D<f32>, cfg: &SimConfig) -> Self {
+    pub fn from_potential(potential: Grid2D<f32>, cfg: &SimConfig) -> Self {
         Self {
             cfg: cfg.clone(),
             // Diagonal includes both the potential AND the stencil centers
-            potential: potential.clone(),
+            potential,
         }
     }
 }

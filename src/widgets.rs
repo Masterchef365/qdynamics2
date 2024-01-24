@@ -206,7 +206,7 @@ pub fn display_imagedata(cfg: &StateViewConfig, artefacts: &SimArtefacts) -> Ima
         });
     } else {
         image = eigstate.map(|v| {
-            let v = *v as f32 * (artefacts.potential.ncols() as f32).sqrt();
+            let v = *v as f32 * (artefacts.ham.potential.ncols() as f32).sqrt();
             if v > 0. {
                 [v, 0.3 * v, 0.0, 0.0]
             } else {
