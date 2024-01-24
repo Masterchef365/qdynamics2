@@ -75,7 +75,7 @@ pub struct Sim {
     pub cfg: SimConfig,
     pub state: SimState,
     cache: Option<Cache>,
-    artefacts: Option<SimArtefacts>,
+    pub artefacts: Option<SimArtefacts>,
 }
 
 impl Sim {

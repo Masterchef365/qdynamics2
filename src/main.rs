@@ -4,7 +4,7 @@ use glam::Vec2;
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
 use qdynamics::sim::{Nucleus, Sim, SimArtefacts, SimConfig, SimState};
-use widgets::{StateViewConfig, display_imagedata, ImageViewWidget, sim_state_editor};
+use widgets::{StateViewConfig, display_imagedata, ImageViewWidget, nucleus_editor, electric_editor};
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
@@ -167,7 +167,11 @@ impl eframe::App for TemplateApp {
 
             ui.separator();
             ui.strong("Nuclei");
-            needs_recalculate |= sim_state_editor(ui, &mut self.sim.state);
+            needs_recalculate |= nucleus_editor(ui, &mut self.sim.state.nuclei);
+
+            ui.separator();
+            ui.strong("Energy levels");
+            needs_update |= electric_editor(ui, &mut self.view_cfg, &mut self.sim.state, self.sim.artefacts.as_ref());
         });
 
         if needs_recalculate {
