@@ -86,6 +86,7 @@ impl ImageViewWidget {
                         for y in 0..psi.nrows() {
                             for x in 0..psi.ncols() {
                                 let force = art.ham.compute_force_at(x, y, psi);
+                                let force = force.normalize_or_zero();
                                 paint.arrow(
                                     sim_coord_to_egui_coord(egui::Vec2::new(x as f32, y as f32)),
                                     egui::Vec2::new(force.x, force.y) * 40.,
