@@ -170,8 +170,16 @@ fn calculate_potential_r_squared(cfg: &SimConfig, state: &SimState) -> Grid2D<f3
                 .nuclei
                 .iter()
                 .map(|nucleus| {
-                    let r = (nucleus.pos - *grid_pos).length();
-                    softened_potential(r, cfg)
+                    if 
+                        nucleus.pos.x as i32 == grid_pos.x as i32 
+                        && nucleus.pos.y as i32 == grid_pos.y as i32 
+                    {
+                        cfg.v0
+                    } else {
+                        0.0
+                    }
+                    //let r = (nucleus.pos - *grid_pos).length();
+                    //softened_potential(r, cfg)
                 })
                 .sum()
         })
