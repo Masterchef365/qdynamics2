@@ -169,8 +169,9 @@ fn grid_positions(cfg: &SimConfig) -> Grid2D<Vec2> {
 }
 
 /// Returns false if out of bounds with the given width
-fn bounds_check(pt_x: i32, pt_y: i32, width: i32) -> Option<(usize, usize)> {
-    (pt_x >= 0 && pt_y >= 0 && pt_x < width && pt_y < width).then(|| (pt_x as usize, pt_y as usize))
+fn bounds_check<T>(pt_x: i32, pt_y: i32, arr: &Array2<T>) -> Option<(usize, usize)> {
+    (pt_x >= 0 && pt_y >= 0 && pt_x < arr.ncols() as i32 && pt_y < arr.nrows() as i32)
+        .then(|| (pt_x as usize, pt_y as usize))
 }
 
 /*
@@ -207,7 +208,7 @@ impl HamiltonianObject {
         self.ncols()
     }
 
-    fn value_at(&self, x: usize, y: usize, psi: &Grid2D<f32>) -> f32 {
+    pub fn value_at(&self, x: usize, y: usize, psi: &Grid2D<f32>) -> f32 {
         let center_grid_coord = (x, y);
 
         let mut sum = 0.0;
@@ -222,7 +223,7 @@ impl HamiltonianObject {
             ((0, 0), pot - 4.0),
         ] {
             if let Some(grid_coord) =
-                bounds_check(x as i32 + off.0, y as i32 + off.1, psi.ncols() as i32)
+                bounds_check(x as i32 + off.0, y as i32 + off.1, &psi)
             {
                 sum += coeff * psi[grid_coord];
             }
@@ -231,7 +232,7 @@ impl HamiltonianObject {
         sum
     }
 
-    fn matrix_vector_prod(&self, psi: Grid2D<f32>) -> Grid2D<f32> {
+    pub fn matrix_vector_prod(&self, psi: Grid2D<f32>) -> Grid2D<f32> {
         let mut output = Grid2D::zeros((self.cfg.grid_width, self.cfg.grid_width));
 
         for y in 0..psi.nrows() {
@@ -244,7 +245,7 @@ impl HamiltonianObject {
     }
 
     // NOTE: This operation is not in the hot path so it is NOT optimized!
-    fn matrix_matrix_prod(&self, mut mtx: Array2<f32>) -> Array2<f32> {
+    pub fn matrix_matrix_prod(&self, mut mtx: Array2<f32>) -> Array2<f32> {
         for mut column in mtx.columns_mut() {
             let res = self.matrix_vector_prod(vector_to_state(column.to_owned(), &self.cfg));
             column.assign(&state_to_vector(res));
@@ -252,7 +253,26 @@ impl HamiltonianObject {
         mtx
     }
 
-    //fn compute_force_at(&self, x: usize, y: usize, psi: Grid2D<f32>) -> Vec2 {}
+    pub fn compute_force_at(&self, x: usize, y: usize, psi: Grid2D<f32>) -> Vec2 {
+        // Gradient of the hamiltonian, we'll use a five-point finite difference stencil in each direction
+        // This is the third derivative. Note that the potential is _not_ included here, as this is
+        // better handled by the classical subsystem!
+
+        let mut sum_x: f32 = 0.;
+        let mut sum_y: f32 = 0.;
+
+        for (offset, coefficient) in (-2..=2).zip(&[1. / 2., -1., 0., 1., -1. / 2.]) {
+            if let Some(grid_coord) = bounds_check(x as i32 + offset, y as i32, &psi) {
+                sum_x += psi[grid_coord] * coefficient;
+            }
+
+            if let Some(grid_coord) = bounds_check(x as i32, y as i32 + offset, &psi) {
+                sum_y += psi[grid_coord] * coefficient;
+            }
+        }
+
+        Vec2::new(sum_x, sum_y)
+    }
 }
 
 /*
