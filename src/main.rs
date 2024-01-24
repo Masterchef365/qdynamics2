@@ -134,6 +134,15 @@ impl eframe::App for TemplateApp {
                 )
                 .changed();
 
+            needs_recalculate |= ui
+                .add(
+                    DragValue::new(&mut self.sim.cfg.v_soft)
+                        .speed(1e-4)
+                        .clamp_range(1e-5..=10.0)
+                        .prefix("V softening: "),
+                )
+                .changed();
+
             ui.horizontal(|ui| {
                 needs_recalculate |= ui.selectable_value(&mut self.sim.cfg.potental_mode, PotentialMode::Delta, "delta(r-r')").changed();
                 needs_recalculate |= ui.selectable_value(&mut self.sim.cfg.potental_mode, PotentialMode::Kqr, "kq / (r + soft)").changed();
