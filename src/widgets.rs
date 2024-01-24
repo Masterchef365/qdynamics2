@@ -153,13 +153,13 @@ pub fn electric_editor(ui: &mut Ui, view: &mut StateViewConfig, state: &mut SimS
     ScrollArea::vertical().id_source("Electrics").max_height(200.).show(ui, |ui| {
         for (idx, coeff) in state.coeffs.iter_mut().enumerate() {
             if let Some(art) = artefacts {
-                if idx > art.energies.len() {
+                if idx >= art.energies.len() {
                     break;
                 }
             }
 
             ui.horizontal(|ui| {
-                ui.label(format!("{} ", idx));
+                ui.label(format!("{:>3} ", idx));
 
                 needs_update |= ui.add(DragValue::new(coeff).prefix("Coeff: ")).changed();
 
