@@ -28,12 +28,13 @@ impl Default for StateViewConfig {
 pub struct ImageViewWidget {
     tex: Option<TextureId>,
     state: Option<SimState>,
+    artefact: Option<SimArtefacts>,
 }
 
 impl ImageViewWidget {
     const OPTS: TextureOptions = TextureOptions::NEAREST;
 
-    pub fn show(&mut self, ui: &mut Ui) -> egui::Response {
+    pub fn show(&mut self, ui: &mut Ui, view: &StateViewConfig) -> egui::Response {
         if let Some(tex) = self.tex {
             let available = ui.available_size();
             let tex_meta = ui.ctx().tex_manager();
@@ -62,8 +63,8 @@ impl ImageViewWidget {
                         Color32::WHITE,
                     );
 
-                    if let Some(state) = &self.state {
-                        let egui_coord_per_sim_coord = |pt: egui::Vec2| {
+                    if let (Some(state), Some(art)) = (&self.state, &self.artefact) {
+                        let sim_coord_to_egui_coord = |pt: egui::Vec2| {
                             resp.rect.min
                                 + ((pt + egui::Vec2::splat(0.5)) * image_size_egui)
                                     / egui::Vec2::from(tex_meta.size.map(|sz| sz as f32))
@@ -72,11 +73,24 @@ impl ImageViewWidget {
                         // Draw nuclei
                         for nucleus in &state.nuclei {
                             paint.circle(
-                                egui_coord_per_sim_coord(egui::Vec2::from(nucleus.pos.to_array())),
+                                sim_coord_to_egui_coord(egui::Vec2::from(nucleus.pos.to_array())),
                                 7.0,
                                 Color32::GREEN,
                                 Stroke::NONE,
                             );
+                        }
+
+                        // Draw arrows for direction
+                        let psi = &art.eigenstates[view.viewed_eigenstate];
+                        for y in 0..psi.nrows() {
+                            for x in 0..psi.ncols() {
+                                let force = art.ham.compute_force_at(x, y, psi);
+                                paint.arrow(
+                                    sim_coord_to_egui_coord(egui::Vec2::new(x as f32, y as f32)),
+                                    egui::Vec2::new(force.x, force.y) * 40.,
+                                    Stroke::new(2.0, Color32::DARK_GREEN),
+                                );
+                            }
                         }
                     }
 
@@ -98,6 +112,7 @@ impl ImageViewWidget {
     ) {
         let image = display_imagedata(cfg, artefact);
         self.state = Some(state.clone());
+        self.artefact = Some(artefact.clone());
 
         if let Some(tex) = self.tex {
             ctx.tex_manager()

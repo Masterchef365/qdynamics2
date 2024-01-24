@@ -253,7 +253,7 @@ impl HamiltonianObject {
         mtx
     }
 
-    pub fn compute_force_at(&self, x: usize, y: usize, psi: Grid2D<f32>) -> Vec2 {
+    pub fn compute_force_at(&self, x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
         // Gradient of the hamiltonian, we'll use a five-point finite difference stencil in each direction
         // This is the third derivative. Note that the potential is _not_ included here, as this is
         // better handled by the classical subsystem!

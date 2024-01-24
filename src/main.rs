@@ -191,7 +191,7 @@ impl eframe::App for TemplateApp {
         }
 
         CentralPanel::default().show(ctx, |ui| {
-            self.img.show(ui);
+            self.img.show(ui, &self.view_cfg);
         });
     }
 }
