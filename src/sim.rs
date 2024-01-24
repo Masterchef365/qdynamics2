@@ -115,7 +115,7 @@ impl Sim {
     pub fn step(&mut self, energy_level: usize) {
         self.recalculate();
 
-        let dt = 1.;
+        let dt = 10.0;
         let art = self.artefacts.as_ref().unwrap();
         for nucleus in &mut self.state.nuclei {
             let psi = &art.eigenstates[energy_level];
