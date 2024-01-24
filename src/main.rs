@@ -138,7 +138,8 @@ impl eframe::App for TemplateApp {
                 .add(
                     DragValue::new(&mut self.sim.cfg.grid_width)
                         .speed(1e-1)
-                        .prefix("Grid size: "),
+                        .prefix("Grid size: ")
+                        .clamp_range(8..=1000),
                 )
                 .changed();
 
