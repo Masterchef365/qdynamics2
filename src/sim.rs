@@ -6,7 +6,7 @@ use ndarray::{Array1, Array2};
 use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
 // TODO: Set these parameters ...
-const NUCLEAR_MASS: f32 = 1.0;
+const NUCLEAR_MASS: f32 = 1836.2; // μ = Mp/Me
 const ELECTRON_MASS: f32 = 1.0;
 const HBAR: f32 = 1.0;
 
@@ -215,16 +215,16 @@ impl HamiltonianObject {
 
         let pot = self.potential[center_grid_coord];
 
+        let h2m = -HBAR.powi(2) / 2. / ELECTRON_MASS;
+
         for (off, coeff) in [
-            ((-1, 0), -1.0),
-            ((1, 0), -1.0),
-            ((0, 1), -1.0),
-            ((0, -1), -1.0),
-            ((0, 0), pot + 4.0),
+            ((-1, 0), 1.0 * h2m),
+            ((1, 0), 1.0 * h2m),
+            ((0, 1), 1.0 * h2m),
+            ((0, -1), 1.0 * h2m),
+            ((0, 0), -4.0 * h2m + pot),
         ] {
-            if let Some(grid_coord) =
-                bounds_check(x as i32 + off.0, y as i32 + off.1, &psi)
-            {
+            if let Some(grid_coord) = bounds_check(x as i32 + off.0, y as i32 + off.1, &psi) {
                 sum += coeff * psi[grid_coord];
             }
         }
