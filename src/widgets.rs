@@ -52,6 +52,7 @@ impl ImageViewWidget {
                 .show(ui, |ui| {
                     let resp = ui.allocate_response(image_size_egui, Sense::click_and_drag());
 
+                    // Draw background image
                     let paint = ui.painter();
                     paint.image(
                         tex,
@@ -67,6 +68,7 @@ impl ImageViewWidget {
                                     / egui::Vec2::from(tex_meta.size.map(|sz| sz as f32))
                         };
 
+                        // Draw nuclei
                         for nucleus in &state.nuclei {
                             paint.circle(
                                 egui_coord_per_sim_coord(egui::Vec2::from(nucleus.pos.to_array())),

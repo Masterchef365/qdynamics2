@@ -245,8 +245,8 @@ impl HamiltonianObject {
     // NOTE: This operation is not in the hot path so it is NOT optimized!
     fn matrix_matrix_prod(&self, mut mtx: Array2<f32>) -> Array2<f32> {
         for mut column in mtx.columns_mut() {
-            let res = self.matrix_vector_prod(vector_to_state(&column.to_owned(), &self.cfg));
-            column.assign(&state_to_vector(&res));
+            let res = self.matrix_vector_prod(vector_to_state(column.to_owned(), &self.cfg));
+            column.assign(&state_to_vector(res));
         }
         mtx
     }
@@ -308,7 +308,7 @@ fn solve_schrödinger(
                 .eigvecs
                 .columns()
                 .into_iter()
-                .map(|col| vector_to_state(&col.to_owned(), cfg))
+                .map(|col| vector_to_state(col.to_owned(), cfg))
                 .collect();
 
             cache = eig.eigvecs;
@@ -328,16 +328,15 @@ impl Default for Nucleus {
     }
 }
 
-fn state_to_vector(state: &Grid2D<f32>) -> Array1<f32> {
+fn state_to_vector(state: Grid2D<f32>) -> Array1<f32> {
+    let num_elem = state.nrows() * state.ncols();
     state
-        .clone()
-        .into_shape(state.nrows() * state.ncols())
+        .into_shape(num_elem)
         .unwrap()
 }
 
-fn vector_to_state(state: &Array1<f32>, cfg: &SimConfig) -> Grid2D<f32> {
+fn vector_to_state(state: Array1<f32>, cfg: &SimConfig) -> Grid2D<f32> {
     state
-        .clone()
         .into_shape((cfg.grid_width, cfg.grid_width))
         .unwrap()
 }
