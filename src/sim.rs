@@ -112,7 +112,22 @@ impl Sim {
         &self.cfg
     }
 
-    pub fn step(&mut self) {}
+    pub fn step(&mut self, energy_level: usize) {
+        self.recalculate();
+
+        let dt = 0.05;
+        let art = self.artefacts.as_ref().unwrap();
+        for nucleus in &mut self.state.nuclei {
+            let psi = &art.eigenstates[energy_level];
+
+            if let Some((x, y)) = bounds_check(nucleus.pos.x as i32, nucleus.pos.y as i32, psi) {
+                let force = art.ham.compute_force_at(x, y, psi);
+                nucleus.vel += force * dt / NUCLEAR_MASS;
+            }
+
+            nucleus.pos += nucleus.vel * dt;
+        }
+    }
 }
 
 fn calculate_artefacts(
@@ -304,11 +319,11 @@ impl HamiltonianObject {
 
         for (offset, coefficient) in (-2..=2).zip(&[1. / 2., -1., 0., 1., -1. / 2.]) {
             if let Some(grid_coord) = bounds_check(x as i32 + offset, y as i32, &psi) {
-                sum_x += psi[grid_coord] * coefficient;
+                sum_x -= psi[grid_coord] * coefficient;
             }
 
             if let Some(grid_coord) = bounds_check(x as i32, y as i32 + offset, &psi) {
-                sum_y += psi[grid_coord] * coefficient;
+                sum_y -= psi[grid_coord] * coefficient;
             }
         }
 
