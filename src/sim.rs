@@ -216,11 +216,11 @@ impl HamiltonianObject {
         let pot = self.potential[center_grid_coord];
 
         for (off, coeff) in [
-            ((-1, 0), 1.0),
-            ((1, 0), 1.0),
-            ((0, 1), 1.0),
-            ((0, -1), 1.0),
-            ((0, 0), pot - 4.0),
+            ((-1, 0), -1.0),
+            ((1, 0), -1.0),
+            ((0, 1), -1.0),
+            ((0, -1), -1.0),
+            ((0, 0), pot + 4.0),
         ] {
             if let Some(grid_coord) =
                 bounds_check(x as i32 + off.0, y as i32 + off.1, &psi)
