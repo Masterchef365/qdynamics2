@@ -137,7 +137,7 @@ impl eframe::App for TemplateApp {
             needs_recalculate |= ui
                 .add(
                     DragValue::new(&mut self.sim.cfg.v_soft)
-                        .speed(1e-4)
+                        .speed(1e-3)
                         .clamp_range(1e-5..=10.0)
                         .prefix("V softening: "),
                 )
