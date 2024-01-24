@@ -107,7 +107,7 @@ impl eframe::App for TemplateApp {
 
         SidePanel::left("left_panel").show(ctx, |ui| {
             if let Some(artefacts) = self.sim.artefacts() {
-                ui.strong("View");
+                ui.strong("Viewed eigenstate:");
                 let energies = &artefacts.energies;
                 needs_update |= ui
                     .add(
