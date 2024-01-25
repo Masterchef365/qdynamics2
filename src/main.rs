@@ -122,6 +122,9 @@ impl eframe::App for TemplateApp {
                 needs_update |= ui
                     .checkbox(&mut self.view_cfg.show_probability, "Show probability")
                     .changed();
+                needs_update |= ui
+                    .checkbox(&mut self.view_cfg.show_force_field, "Show force field")
+                    .changed();
             }
 
             ui.separator();
