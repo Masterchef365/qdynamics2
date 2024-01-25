@@ -128,14 +128,16 @@ fn calculate_artefacts(
     let ham = HamiltonianObject::from_potential(potential, cfg);
     let (mut energies, mut eigenstates, mut cache) = solve_schrödinger(cfg, &ham, cache);
 
-    // THIS IS A WORKAROUND TO A KNOWN BEHAVIOUR EFFECTING CONVERGENCE 
-    // If there's at least one negative potential, we should have a bound state. 
+    /*
+    // THIS IS A WORKAROUND TO A KNOWN BEHAVIOUR EFFECTING CONVERGENCE
+    // If there's at least one negative potential, we should have a bound state.
     // If this is not the case, then we should try re-calculating without the preconditioner.
     // This costs a lot of CPU cycles but ensures convergence
     if cfg.v0 < 0. && state.nuclei.len() >= 1 && energies[0] > 0. {
         eprintln!("Positive first energy refresh triggered");
         (energies, eigenstates, cache) = solve_schrödinger(cfg, &ham, None);
     }
+    */
 
     (
         SimArtefacts {
@@ -233,12 +235,12 @@ impl HamiltonianObject {
 }
 
 impl HamiltonianObject {
-    fn ncols(&self) -> usize {
+    fn input_len(&self) -> usize {
         self.potential.nrows() * self.potential.ncols()
     }
 
     fn nrows(&self) -> usize {
-        self.ncols()
+        self.input_len()
     }
 
     pub fn value_at(&self, x: usize, y: usize, psi: &Grid2D<f32>) -> f32 {
@@ -333,12 +335,16 @@ fn solve_schrödinger(
     ham: &HamiltonianObject,
     cache: Option<Cache>,
 ) -> (Vec<f32>, Vec<Grid2D<f32>>, Cache) {
-    let cache = cache.filter(|p| p.shape()[0] == ham.ncols());
+    let cache = cache.filter(|p| p.shape()[0] == ham.input_len());
     let cache = cache.filter(|p| p.shape()[1] == cfg.n_states);
 
+    let k = 0.01;
+    let rand = Array2::random((ham.input_len(), cfg.n_states), Uniform::new(-1.0, 1.0));
     let preconditioner: Array2<f32> = match cache {
-        None => Array2::random((ham.ncols(), cfg.n_states), Uniform::new(-1.0, 1.0)),
-        Some(cache) => cache,
+        None => rand,
+        Some(cache) => {
+            rand * 0. + cache
+        }
     };
 
     let result = linfa_linalg::lobpcg::lobpcg::<f32, _, _>(
