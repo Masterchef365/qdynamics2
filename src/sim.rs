@@ -126,7 +126,15 @@ fn calculate_artefacts(
     };
 
     let ham = HamiltonianObject::from_potential(potential, cfg);
-    let (energies, eigenstates, cache) = solve_schrödinger(cfg, &ham, cache);
+    let (mut energies, mut eigenstates, mut cache) = solve_schrödinger(cfg, &ham, cache);
+
+    // THIS IS A WORKAROUND TO A KNOWN BEHAVIOUR EFFECTING CONVERGENCE 
+    // If there's at least one negative potential, we should have a bound state. 
+    // If this is not the case, then we should try re-calculating without the preconditioner.
+    // This costs a lot of CPU cycles but ensures convergence
+    if cfg.v0 < 0. && state.nuclei.len() >= 1 && energies[0] > 0. {
+        (energies, eigenstates, cache) = solve_schrödinger(cfg, &ham, None);
+    }
 
     (
         SimArtefacts {
