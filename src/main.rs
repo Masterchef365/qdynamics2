@@ -129,20 +129,12 @@ impl eframe::App for TemplateApp {
 
             ui.separator();
             ui.strong("Config");
+            ui.label("Potential function:");
             needs_recalculate |= ui
                 .add(
                     DragValue::new(&mut self.sim.cfg.v0)
                         .speed(1e-1)
-                        .prefix("V0: "),
-                )
-                .changed();
-
-            needs_recalculate |= ui
-                .add(
-                    DragValue::new(&mut self.sim.cfg.v_soft)
-                        .speed(1e-3)
-                        .clamp_range(1e-5..=10.0)
-                        .prefix("V softening: "),
+                        .prefix("V₀: "),
                 )
                 .changed();
 
@@ -151,7 +143,7 @@ impl eframe::App for TemplateApp {
                     .selectable_value(
                         &mut self.sim.cfg.potental_mode,
                         PotentialMode::Delta,
-                        "delta(r-r')",
+                        "δ(r)",
                     )
                     .changed();
                 needs_recalculate |= ui
@@ -163,6 +155,18 @@ impl eframe::App for TemplateApp {
                     .changed();
             });
 
+            if self.sim.cfg.potental_mode == PotentialMode::Kqr {
+                needs_recalculate |= ui
+                    .add(
+                        DragValue::new(&mut self.sim.cfg.v_soft)
+                            .speed(1e-3)
+                            .clamp_range(1e-5..=10.0)
+                            .prefix("V softening: "),
+                    )
+                    .changed();
+            }
+
+            ui.label("Solver:");
             needs_recalculate |= ui
                 .add(
                     DragValue::new(&mut self.sim.cfg.grid_width)
@@ -216,13 +220,16 @@ impl eframe::App for TemplateApp {
 
         CentralPanel::default().show(ctx, |ui| {
             if let Some(art) = &self.sim.artefacts {
-                needs_recalculate |= self.img.show(
-                    "Main image".into(),
-                    ui,
-                    &self.view_cfg,
-                    &mut self.sim.state,
-                    art,
-                ).dragged();
+                needs_recalculate |= self
+                    .img
+                    .show(
+                        "Main image".into(),
+                        ui,
+                        &self.view_cfg,
+                        &mut self.sim.state,
+                        art,
+                    )
+                    .dragged();
             }
         });
 

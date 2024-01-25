@@ -36,7 +36,7 @@ DOI: 10.1021/acsomega.2c04843
 \clearpage
 
 \section{Overview}
-The simulation consists of a number of classically-modelled atomic nuclei, which are orbited by a cloud of electrons. The atomic nuclei are assumed to only respond to one energy state of the electron cloud ($\lambda$) at any given time. 
+The simulation consists of a number of classically-modelled atomic nuclei, which are orbited by a cloud of electrons. The atomic nuclei are assumed to only respond to one energy state ($\lambda$) of the electron cloud at any given time. 
 
 The Hamiltonian of the electron system is:
 \[ H = \hat{T} + V(R) \]
@@ -45,7 +45,7 @@ The Hamiltonian of the electron system is:
 
 1. Initialize runtime parameters:
 \begin{itemize}
-    \item $(R, P)$: These are the position and momentum vectors of the atomic nuclei. They are modelled clasically. In code, they are called position and velocity, the mass being assumed constant for all nuclei.
+    \item $(R, P)$: These are the position and momentum vectors of the atomic nuclei. They are modelled clasically. In code, they are called position and velocity, the mass being variable for each nucleus.
     \item $\lambda$: The current electronic state we are allowing the nuclei to observe. The corresponding energy eigenstate will be denoted $\Phi_\lambda$.
     \item $c_j$: The current electronic wavefunction parameters. It can also be represented as a vector $\vec{c}$. Note that $\psi(t)$ is a linear combination of energy eigenstates based on these coefficients: 
         \[ \psi(t=0) = \eigbasis \vec{c} \]
