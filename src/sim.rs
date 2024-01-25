@@ -133,6 +133,7 @@ fn calculate_artefacts(
     // If this is not the case, then we should try re-calculating without the preconditioner.
     // This costs a lot of CPU cycles but ensures convergence
     if cfg.v0 < 0. && state.nuclei.len() >= 1 && energies[0] > 0. {
+        eprintln!("Positive first energy refresh triggered");
         (energies, eigenstates, cache) = solve_schrödinger(cfg, &ham, None);
     }
 
