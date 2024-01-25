@@ -295,7 +295,7 @@ impl HamiltonianObject {
             }
         }
 
-        Vec2::new(sum_x, sum_y)
+        psi[(x, y)] * Vec2::new(sum_x, sum_y)
     }
 }
 
