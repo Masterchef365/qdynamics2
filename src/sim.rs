@@ -79,6 +79,7 @@ pub struct Sim {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PotentialMode {
     Delta,
+    DeltaAntialias,
     Kqr,
 }
 
@@ -121,6 +122,7 @@ fn calculate_artefacts(
     cache: Option<Cache>,
 ) -> (SimArtefacts, Cache) {
     let potential = match cfg.potental_mode {
+        PotentialMode::DeltaAntialias => calculate_antialias_delta_potential(cfg, state),
         PotentialMode::Delta => calculate_delta_potential(cfg, state),
         PotentialMode::Kqr => calculate_potential_r_squared(cfg, state),
     };
@@ -154,6 +156,16 @@ fn calculate_delta_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
         if let Some(grid_coord) = bounds_check(nucleus.pos.x as i32, nucleus.pos.y as i32, &pot) {
             pot[grid_coord] += cfg.v0;
         }
+    }
+
+    pot
+}
+
+/// Calculate the electric potential in the position basis
+fn calculate_antialias_delta_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
+    let mut pot = Grid2D::zeros((cfg.grid_width, cfg.grid_width));
+    for nucleus in &state.nuclei {
+        interp_write(&mut pot, nucleus.pos.x, nucleus.pos.y, cfg.v0);
     }
 
     pot
@@ -206,6 +218,30 @@ fn bounds_check<T>(pt_x: i32, pt_y: i32, arr: &Array2<T>) -> Option<(usize, usiz
     (pt_x >= 0 && pt_y >= 0 && pt_x < arr.ncols() as i32 && pt_y < arr.nrows() as i32)
         .then(|| (pt_x as usize, pt_y as usize))
 }
+
+fn interp_write(grid: &mut Grid2D<f32>, x: f32, y: f32, value: f32) {
+    let tl_x = x as i32;
+    let tl_y = y as i32;
+
+    let xf = x.fract();
+    let yf = y.fract();
+
+    let parts = [
+        (0, 0, 1. - xf, 1. - yf),
+        (1, 0, xf, 1. - yf),
+        (0, 1, 1. - xf, yf),
+        (1, 1, xf, yf),
+    ];
+
+    // Accumulate samples into adjacent points
+    for (off_x, off_y, interp_x, interp_y) in parts {
+        if let Some(grid_pos) = bounds_check(tl_x + off_x, tl_y + off_y, &grid) {
+            grid[grid_pos] += interp_x * interp_y * value;
+        }
+    }
+}
+
+
 
 /*
 ///
