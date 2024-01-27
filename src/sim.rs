@@ -148,8 +148,6 @@ impl Sim {
                     nucleus.vel.y *= -1.0;
                 }
             }
-
-            nucleus.pos += nucleus.vel * self.cfg.nuclear_dt;
         }
 
         // Accumulate nuclear -> nuclear forces
