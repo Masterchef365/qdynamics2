@@ -136,7 +136,7 @@ impl Sim {
             )
             .is_some()
             {
-                let force = interpolate_force_vector(&art, energy_level, nucleus.pos);
+                let force = calculate_electric_force(&art, energy_level, nucleus.pos);
 
                 nucleus.vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
             } else {
@@ -180,7 +180,7 @@ pub fn calculate_classical_force(idx: usize, state: &SimState) -> Vec2 {
     total_force
 }
 
-pub fn interpolate_force_vector(art: &SimElectronicState, energy_level: usize, pos: Vec2) -> Vec2 {
+pub fn calculate_electric_force(art: &SimElectronicState, energy_level: usize, pos: Vec2) -> Vec2 {
     let tl_x = pos.x as i32;
     let tl_y = pos.y as i32;
 

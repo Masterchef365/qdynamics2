@@ -7,7 +7,7 @@ use egui::{
     CentralPanel, Color32, DragValue, Frame, Pos2, Rect, Response, SelectableLabel, SidePanel,
 };
 use ndarray::{Array2, Array3};
-use qdynamics::sim::{interpolate_force_vector, Nucleus, SimElectronicState, SimState, compute_force_at};
+use qdynamics::sim::{calculate_electric_force, Nucleus, SimElectronicState, SimState, compute_force_at, calculate_classical_force};
 
 #[derive(Clone, Copy)]
 pub struct StateViewConfig {
@@ -122,7 +122,7 @@ impl ImageViewWidget {
                     let display_mult = 10000.;
 
                     // Draw nuclei
-                    for nucleus in &state.nuclei {
+                    for (idx, nucleus) in state.nuclei.iter().enumerate() {
                         let center = sim_coord_to_egui_coord(nucleus.pos);
                         paint.circle(center, 7.0, Color32::GREEN, Stroke::NONE);
 
@@ -130,10 +130,13 @@ impl ImageViewWidget {
                         //paint.arrow(center, egui::Vec2::from(nucleus.vel.to_array()), Stroke::new(1.0, Color32::RED));
 
                         // Acceleration arrow
-                        let accel = interpolate_force_vector(&art, view.viewed_eigenstate, nucleus.pos);
+                        let electric_force = calculate_electric_force(&art, view.viewed_eigenstate, nucleus.pos);
+                        let nuclear_force = calculate_classical_force(idx, state);
+
+                        let force = electric_force + nuclear_force;
                         paint.arrow(
                             center,
-                            egui::Vec2::from(accel.to_array()) * display_mult * 10.,
+                            egui::Vec2::from(force.to_array()) * display_mult * 10.,
                             Stroke::new(1.0, Color32::GREEN),
                         );
                     }
