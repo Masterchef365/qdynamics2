@@ -166,10 +166,12 @@ impl Sim {
         // Scale velocity according to potential energy surface
         let delta_e_nuclear: f32 = delta_v.iter().map(|vel| vel.length_squared()).sum();
         let avg_delta_v = delta_e_nuclear.sqrt();
-        let electric_delta_v = delta_e_electric.sqrt();
-        let vel_scale_factor = electric_delta_v / avg_delta_v;
-        dbg!(vel_scale_factor);
-        //delta_v.iter_mut().for_each(|v| *v *= vel_scale_factor);
+        if let Some(delta_e_electric) = delta_e_electric {
+            let electric_delta_v = delta_e_electric.sqrt();
+            let vel_scale_factor = electric_delta_v / avg_delta_v;
+            //dbg!(vel_scale_factor);
+            delta_v.iter_mut().for_each(|v| *v *= vel_scale_factor);
+        }
 
         // Time step
         for (dv, nucleus) in delta_v.iter().zip(&mut self.state.nuclei) {

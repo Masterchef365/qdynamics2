@@ -35,7 +35,7 @@ pub struct ImageViewWidget {
 }
 
 impl ImageViewWidget {
-    const OPTS: TextureOptions = TextureOptions::NEAREST;
+    const OPTS: TextureOptions = TextureOptions::LINEAR;
 
     pub fn show(
         &mut self,
@@ -72,7 +72,107 @@ impl ImageViewWidget {
             };
 
             Frame::canvas(ui.style())
-                .show(ui, |ui| {})
+                .show(ui, |ui| {
+                    let resp = ui.allocate_response(image_size_egui, Sense::click_and_drag());
+
+                    // Draw background image
+                    let paint = ui.painter(); // TODO: use clipping painter_at(). This is nice for
+                                              // debugging as is though...
+                    paint.image(
+                        tex,
+                        resp.rect,
+                        Rect::from_two_pos(Pos2::ZERO, Pos2::new(1., 1.)),
+                        Color32::WHITE,
+                    );
+
+                    let tex_size = egui::Vec2::from(tex_meta.size.map(|sz| sz as f32));
+
+                    let sim_coord_to_egui_coord = |sim_coord: glam::Vec2| {
+                        let pt = egui::Vec2::from(sim_coord.to_array());
+                        resp.rect.min + (pt + egui::Vec2::splat(0.5)) * image_size_egui / tex_size
+                        //+ pt * image_size_egui / tex_size
+                    };
+
+                    /*
+                    let egui_coord_to_sim_coord = |egui_coord: egui::Pos2| {
+                        (egui_coord - resp.rect.min) * tex_size / image_size_egui
+                    };
+                    */
+
+                    let egui_vect_to_sim_vect = |egui_vect: egui::Vec2| {
+                        let v = egui_vect * tex_size / image_size_egui;
+                        glam::Vec2::new(v.x, v.y)
+                    };
+
+                    // Move nuclei
+                    if resp.dragged() {
+                        if let Some(pointer_pos) = resp.interact_pointer_pos() {
+                            for nucleus in &mut state.nuclei {
+                                let screen_pos = sim_coord_to_egui_coord(nucleus.pos);
+                                let screen_dist = screen_pos - pointer_pos;
+
+                                let drag_radius = 20.0;
+                                if screen_dist.length() < drag_radius {
+                                    nucleus.pos += egui_vect_to_sim_vect(resp.drag_delta());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    let psi = &art.eigenstates[view.viewed_eigenstate];
+
+                    let display_mult = 100.;
+
+                    // Draw nuclei
+                    for (idx, nucleus) in state.nuclei.iter().enumerate() {
+                        let center = sim_coord_to_egui_coord(nucleus.pos);
+                        paint.circle(center, 7.0, Color32::GREEN, Stroke::NONE);
+
+                        // Velocity arrow
+                        //paint.arrow(center, egui::Vec2::from(nucleus.vel.to_array()), Stroke::new(1.0, Color32::RED));
+
+                        // Acceleration arrow
+                        let electric_force =
+                            calculate_electric_force(&art, view.viewed_eigenstate, nucleus.pos);
+                        let nuclear_force = calculate_classical_force(idx, state, cfg);
+
+                        let total_force = electric_force + nuclear_force;
+                        paint.arrow(
+                            center,
+                            egui::Vec2::from(total_force.to_array()) * display_mult,
+                            Stroke::new(1.0, Color32::GREEN),
+                        );
+                        paint.arrow(
+                            center,
+                            egui::Vec2::from(electric_force.to_array()) * display_mult,
+                            Stroke::new(1.0, Color32::RED),
+                        );
+                        paint.arrow(
+                            center,
+                            egui::Vec2::from(nuclear_force.to_array()) * display_mult,
+                            Stroke::new(1.0, Color32::BLUE),
+                        );
+                    }
+
+                    // Draw arrows for direction
+                    if view.show_force_field {
+                        for y in 0..psi.nrows() {
+                            for x in 0..psi.ncols() {
+                                let force = compute_force_at(art, view.viewed_eigenstate, x, y);
+                                //let force = force.normalize_or_zero();
+
+                                paint.arrow(
+                                    sim_coord_to_egui_coord(glam::Vec2::new(x as f32, y as f32)),
+                                    egui::Vec2::new(force.x, force.y) * display_mult,
+                                    Stroke::new(2.0, Color32::DARK_GREEN),
+                                );
+                            }
+                        }
+                    }
+
+                    resp
+                })
                 .inner
         } else {
             ui.label("Texture not set, this is an error!")
