@@ -119,7 +119,7 @@ impl ImageViewWidget {
 
                     let psi = &art.eigenstates[view.viewed_eigenstate];
 
-                    let display_mult = 100.;
+                    let display_mult = 10000.;
 
                     // Draw nuclei
                     for nucleus in &state.nuclei {
@@ -134,7 +134,7 @@ impl ImageViewWidget {
                         paint.arrow(
                             center,
                             egui::Vec2::from(accel.to_array()) * display_mult * 10.,
-                            Stroke::new(1.0, Color32::RED),
+                            Stroke::new(1.0, Color32::GREEN),
                         );
                     }
 

@@ -6,9 +6,9 @@ use ndarray::{Array1, Array2};
 use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
 // TODO: Set these parameters ...
-const NUCLEAR_MASS: f32 = 1836.2; // μ = Mp/Me
-const ELECTRON_MASS: f32 = 1.0;
-const HBAR: f32 = 1.0;
+pub const NUCLEAR_MASS: f32 = 1836.2; // μ = Mp/Me
+pub const ELECTRON_MASS: f32 = 1.0;
+pub const HBAR: f32 = 1.0;
 
 pub type Grid2D<T> = Array2<T>;
 
