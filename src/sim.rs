@@ -122,11 +122,17 @@ impl Sim {
     }
 
     pub fn step(&mut self, energy_level: usize) {
+        let energy_before = self.elec_state.as_ref().map(|state| state.energies[energy_level]);
         self.recalculate_elec_state();
+        let energy_after = self.elec_state.as_ref().unwrap().energies[energy_level];
+
+        let delta_e_electric: Option<f32> = energy_before.map(|e_before| energy_after - e_before);
+
+        let mut delta_v = vec![Vec2::ZERO; self.state.nuclei.len()];
 
         // Accumulate electric -> nuclear forces
         let art = self.elec_state.as_ref().unwrap();
-        for nucleus in &mut self.state.nuclei {
+        for (dv, nucleus) in delta_v.iter_mut().zip(&mut self.state.nuclei) {
             let psi = &art.eigenstates[energy_level];
 
             if bounds_check(
@@ -138,7 +144,7 @@ impl Sim {
             {
                 let force = calculate_electric_force(&art, energy_level, nucleus.pos);
 
-                nucleus.vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
+                *dv += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
             } else {
                 if nucleus.pos.x < 0.0 || nucleus.pos.x + 1.0 > psi.ncols() as f32 {
                     nucleus.vel.x *= -1.0;
@@ -154,12 +160,20 @@ impl Sim {
         for i in 0..self.state.nuclei.len() {
             let force = calculate_classical_force(i, &self.state, &self.cfg) * self.cfg.nuclear_dt
                 / NUCLEAR_MASS;
-            self.state.nuclei[i].vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
+            delta_v[i] += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
         }
 
+        // Scale velocity according to potential energy surface
+        let delta_e_nuclear: f32 = delta_v.iter().map(|vel| vel.length_squared()).sum();
+        let avg_delta_v = delta_e_nuclear.sqrt();
+        let electric_delta_v = delta_e_electric.sqrt();
+        let vel_scale_factor = electric_delta_v / avg_delta_v;
+        dbg!(vel_scale_factor);
+        //delta_v.iter_mut().for_each(|v| *v *= vel_scale_factor);
+
         // Time step
-        for nucleus in &mut self.state.nuclei {
-            nucleus.pos += nucleus.vel * self.cfg.nuclear_dt;
+        for (dv, nucleus) in delta_v.iter().zip(&mut self.state.nuclei) {
+            nucleus.pos += *dv;
         }
     }
 }
