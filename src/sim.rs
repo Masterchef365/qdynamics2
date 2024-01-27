@@ -167,10 +167,14 @@ impl Sim {
         let delta_e_nuclear: f32 = delta_v.iter().map(|vel| vel.length_squared()).sum();
         let avg_delta_v = delta_e_nuclear.sqrt();
         if let Some(delta_e_electric) = delta_e_electric {
-            let electric_delta_v = delta_e_electric.sqrt();
-            let vel_scale_factor = electric_delta_v / avg_delta_v;
-            //dbg!(vel_scale_factor);
-            delta_v.iter_mut().for_each(|v| *v *= vel_scale_factor);
+            let electric_delta_v = delta_e_electric.abs().sqrt();
+            dbg!(avg_delta_v);
+            dbg!(electric_delta_v);
+            if avg_delta_v > 0.001 {
+                let vel_scale_factor = electric_delta_v / avg_delta_v;
+                dbg!(vel_scale_factor);
+                delta_v.iter_mut().for_each(|v| *v *= vel_scale_factor);
+            }
         }
 
         // Time step
@@ -217,7 +221,7 @@ pub fn calculate_electric_force(art: &SimElectronicState, energy_level: usize, p
         }
     }
 
-    sum * NUCLEAR_MASS
+    sum
 }
 
 fn calculate_electric_state(
