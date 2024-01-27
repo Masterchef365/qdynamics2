@@ -94,7 +94,7 @@ impl Sim {
             cache: None,
             elec_state: None,
         };
-        inst.recalculate();
+        inst.recalculate_elec_state();
         inst
     }
 
@@ -102,7 +102,7 @@ impl Sim {
         self.cache = None;
     }
 
-    pub fn recalculate(&mut self) {
+    pub fn recalculate_elec_state(&mut self) {
         let (elec_state, cache) =
             calculate_electric_state(&self.cfg, &self.state, self.cache.take());
         self.cache = Some(cache);
@@ -122,7 +122,7 @@ impl Sim {
     }
 
     pub fn step(&mut self, energy_level: usize) {
-        self.recalculate();
+        self.recalculate_elec_state();
 
         // Accumulate electric -> nuclear forces
         let art = self.elec_state.as_ref().unwrap();
