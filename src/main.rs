@@ -1,5 +1,6 @@
 use egui::{CentralPanel, DragValue, Response, SelectableLabel, SidePanel, Ui};
 use glam::Vec2;
+use linfa_linalg::Order;
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
@@ -94,7 +95,7 @@ impl eframe::App for TemplateApp {
         self.sim.step();
 
         let mut needs_update = false;
-        let mut needs_recalculate = false;
+        let mut needs_reset = false;
 
         /*
         if self.max_states_is_grid_width {
@@ -106,8 +107,13 @@ impl eframe::App for TemplateApp {
         */
 
         SidePanel::left("left_panel").show(ctx, |ui| {
-            if let Some(artefacts) = self.sim.artefacts() {
+            if let Some(artefacts) = self.sim.artefacts.as_ref() {
                 ui.strong("Viewed eigenstate:");
+                ui.horizontal(|ui| {
+                    needs_reset |= ui.selectable_value(&mut self.sim.cfg.eigval_search, Order::Smallest, "Smallest E").changed();
+                    needs_reset |= ui.selectable_value(&mut self.sim.cfg.eigval_search, Order::Largest, "Largest E").changed();
+                });
+
                 let energies = &artefacts.energies;
                 needs_update |= ui
                     .add(
@@ -130,7 +136,7 @@ impl eframe::App for TemplateApp {
             ui.separator();
             ui.strong("Config");
             ui.label("Potential function:");
-            needs_recalculate |= ui
+            needs_reset |= ui
                 .add(
                     DragValue::new(&mut self.sim.cfg.v0)
                         .speed(1e-1)
@@ -139,14 +145,14 @@ impl eframe::App for TemplateApp {
                 .changed();
 
             ui.horizontal(|ui| {
-                needs_recalculate |= ui
+                needs_reset |= ui
                     .selectable_value(
                         &mut self.sim.cfg.potental_mode,
                         PotentialMode::Delta,
                         "δ(r)",
                     )
                     .changed();
-                needs_recalculate |= ui
+                needs_reset |= ui
                     .selectable_value(
                         &mut self.sim.cfg.potental_mode,
                         PotentialMode::Kqr,
@@ -156,7 +162,7 @@ impl eframe::App for TemplateApp {
             });
 
             if self.sim.cfg.potental_mode == PotentialMode::Kqr {
-                needs_recalculate |= ui
+                needs_reset |= ui
                     .add(
                         DragValue::new(&mut self.sim.cfg.v_soft)
                             .speed(1e-3)
@@ -167,7 +173,7 @@ impl eframe::App for TemplateApp {
             }
 
             ui.label("Solver:");
-            needs_recalculate |= ui
+            needs_reset |= ui
                 .add(
                     DragValue::new(&mut self.sim.cfg.grid_width)
                         .speed(1e-1)
@@ -176,7 +182,7 @@ impl eframe::App for TemplateApp {
                 )
                 .changed();
 
-            needs_recalculate |= ui
+            needs_reset |= ui
                 .add(
                     DragValue::new(&mut self.sim.cfg.tolerance)
                         .speed(1e-1)
@@ -184,7 +190,7 @@ impl eframe::App for TemplateApp {
                 )
                 .changed();
 
-            needs_recalculate |= ui
+            needs_reset |= ui
                 .add(
                     DragValue::new(&mut self.sim.cfg.num_solver_iters)
                         .speed(1e-1)
@@ -193,7 +199,7 @@ impl eframe::App for TemplateApp {
                 .changed();
 
             ui.horizontal(|ui| {
-                needs_recalculate |= ui
+                needs_reset |= ui
                     .add(
                         DragValue::new(&mut self.sim.cfg.n_states)
                             .speed(1e-1)
@@ -206,7 +212,7 @@ impl eframe::App for TemplateApp {
 
             ui.separator();
             ui.strong("Nuclei");
-            needs_recalculate |= nucleus_editor(ui, &mut self.sim.state.nuclei);
+            needs_reset |= nucleus_editor(ui, &mut self.sim.state.nuclei);
 
             ui.separator();
             ui.strong("Energy levels");
@@ -220,7 +226,7 @@ impl eframe::App for TemplateApp {
 
         CentralPanel::default().show(ctx, |ui| {
             if let Some(art) = &self.sim.artefacts {
-                needs_recalculate |= self
+                needs_reset |= self
                     .img
                     .show(
                         "Main image".into(),
@@ -233,7 +239,8 @@ impl eframe::App for TemplateApp {
             }
         });
 
-        if needs_recalculate {
+        if needs_reset {
+            self.sim.clear_cache();
             self.recalculate(ctx);
         } else if needs_update {
             self.update_view(ctx);
@@ -282,6 +289,7 @@ fn initial_state(cfg: &SimConfig) -> SimState {
 const N: usize = 20;
 fn initial_cfg() -> SimConfig {
     SimConfig {
+        eigval_search: Order::Smallest,
         potental_mode: PotentialMode::Delta,
         dx: 1.0,
         grid_width: N,

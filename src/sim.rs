@@ -35,6 +35,7 @@ pub struct SimConfig {
     pub tolerance: f32,
 
     pub potental_mode: PotentialMode,
+    pub eigval_search: linfa_linalg::lobpcg::Order,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -94,6 +95,10 @@ impl Sim {
         inst
     }
 
+    pub fn clear_cache(&mut self) {
+        self.cache = None;
+    }
+
     pub fn recalculate(&mut self) {
         let (artefacts, cache) = calculate_artefacts(&self.cfg, &self.state, self.cache.take());
         self.cache = Some(cache);
@@ -128,6 +133,7 @@ fn calculate_artefacts(
     let ham = HamiltonianObject::from_potential(potential, cfg);
     let (mut energies, mut eigenstates, mut cache) = solve_schrödinger(cfg, &ham, cache);
 
+    /*
     // THIS IS A WORKAROUND TO A KNOWN BEHAVIOUR EFFECTING CONVERGENCE 
     // If there's at least one negative potential, we should have a bound state. 
     // If this is not the case, then we should try re-calculating without the preconditioner.
@@ -136,6 +142,7 @@ fn calculate_artefacts(
         eprintln!("Positive first energy refresh triggered");
         (energies, eigenstates, cache) = solve_schrödinger(cfg, &ham, None);
     }
+    */
 
     (
         SimArtefacts {
@@ -348,7 +355,7 @@ fn solve_schrödinger(
         None,
         cfg.tolerance,
         cfg.num_solver_iters,
-        linfa_linalg::lobpcg::Order::Smallest,
+        cfg.eigval_search,
     );
 
     let eigvects: Vec<Grid2D<f32>>;
@@ -373,6 +380,12 @@ fn solve_schrödinger(
     (eigvals, eigvects, cache)
 }
 
+impl Nucleus {
+    pub fn stationary_at(pos: Vec2) -> Self {
+        Self { vel: Vec2::ZERO, pos }
+    }
+
+}
 impl Default for Nucleus {
     fn default() -> Self {
         Self {
