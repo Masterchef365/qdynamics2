@@ -114,7 +114,11 @@ impl eframe::App for TemplateApp {
         SidePanel::left("left_panel").show(ctx, |ui| {
             ui.strong("Time");
             ui.checkbox(&mut self.paused, "Pause");
-            ui.add(DragValue::new(&mut self.sim.cfg.nuclear_dt).prefix("Nuclear dt: ").speed(1e-1));
+            ui.add(
+                DragValue::new(&mut self.sim.cfg.nuclear_dt)
+                    .prefix("Nuclear dt: ")
+                    .speed(1e-1),
+            );
 
             ui.separator();
             if let Some(elec_state) = self.sim.elec_state.as_ref() {

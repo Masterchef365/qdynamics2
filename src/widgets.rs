@@ -7,7 +7,10 @@ use egui::{
     CentralPanel, Color32, DragValue, Frame, Pos2, Rect, Response, SelectableLabel, SidePanel,
 };
 use ndarray::{Array2, Array3};
-use qdynamics::sim::{calculate_electric_force, Nucleus, SimElectronicState, SimState, compute_force_at, calculate_classical_force, SimConfig};
+use qdynamics::sim::{
+    calculate_classical_force, calculate_electric_force, compute_force_at, Nucleus, SimConfig,
+    SimElectronicState, SimState,
+};
 
 #[derive(Clone, Copy)]
 pub struct StateViewConfig {
@@ -86,9 +89,8 @@ impl ImageViewWidget {
 
                     let sim_coord_to_egui_coord = |sim_coord: glam::Vec2| {
                         let pt = egui::Vec2::from(sim_coord.to_array());
-                        resp.rect.min
-                                + (pt + egui::Vec2::splat(0.5)) * image_size_egui / tex_size
-                                //+ pt * image_size_egui / tex_size
+                        resp.rect.min + (pt + egui::Vec2::splat(0.5)) * image_size_egui / tex_size
+                        //+ pt * image_size_egui / tex_size
                     };
 
                     /*
@@ -131,7 +133,8 @@ impl ImageViewWidget {
                         //paint.arrow(center, egui::Vec2::from(nucleus.vel.to_array()), Stroke::new(1.0, Color32::RED));
 
                         // Acceleration arrow
-                        let electric_force = calculate_electric_force(&art, view.viewed_eigenstate, nucleus.pos);
+                        let electric_force =
+                            calculate_electric_force(&art, view.viewed_eigenstate, nucleus.pos);
                         let nuclear_force = calculate_classical_force(idx, state, cfg);
 
                         let total_force = electric_force + nuclear_force;
@@ -150,8 +153,6 @@ impl ImageViewWidget {
                             egui::Vec2::from(nuclear_force.to_array()) * display_mult,
                             Stroke::new(1.0, Color32::BLUE),
                         );
-
-
                     }
 
                     // Draw arrows for direction
@@ -161,9 +162,7 @@ impl ImageViewWidget {
                                 let force = compute_force_at(art, view.viewed_eigenstate, x, y);
                                 //let force = force.normalize_or_zero();
                                 paint.arrow(
-                                    sim_coord_to_egui_coord(
-                                        glam::Vec2::new(x as f32, y as f32),
-                                    ),
+                                    sim_coord_to_egui_coord(glam::Vec2::new(x as f32, y as f32)),
                                     egui::Vec2::new(force.x, force.y) * display_mult,
                                     Stroke::new(2.0, Color32::DARK_GREEN),
                                 );

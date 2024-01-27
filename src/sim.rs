@@ -152,8 +152,8 @@ impl Sim {
 
         // Accumulate nuclear -> nuclear forces
         for i in 0..self.state.nuclei.len() {
-            let force =
-                calculate_classical_force(i, &self.state, &self.cfg) * self.cfg.nuclear_dt / NUCLEAR_MASS;
+            let force = calculate_classical_force(i, &self.state, &self.cfg) * self.cfg.nuclear_dt
+                / NUCLEAR_MASS;
             self.state.nuclei[i].vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
         }
 
