@@ -240,49 +240,6 @@ fn calculate_potential_r_squared(cfg: &SimConfig, state: &SimState) -> Grid2D<f3
     potential
 }
 
-fn interp_write(grid: &mut Grid2D<f32>, x: f32, y: f32, value: f32) {
-    let tl_x = x as i32;
-    let tl_y = y as i32;
-
-    let xf = x.fract();
-    let yf = y.fract();
-
-    let parts = [
-        (0, 0, 1. - xf, 1. - yf),
-        (1, 0, xf, 1. - yf),
-        (0, 1, 1. - xf, yf),
-        (1, 1, xf, yf),
-    ];
-
-    // Accumulate samples into adjacent points
-    for (off_x, off_y, interp_x, interp_y) in parts {
-        if let Some(grid_pos) = bounds_check(tl_x + off_x, tl_y + off_y, &grid) {
-            grid[grid_pos] += interp_x * interp_y * value;
-        }
-    }
-}
-
-fn softened_potential(r: f32, cfg: &SimConfig) -> f32 {
-    cfg.v0 / (r * cfg.v_scale + cfg.v_soft)
-}
-
-/// World-space positions at grid points
-fn grid_positions(cfg: &SimConfig) -> Grid2D<Vec2> {
-    let mut output = Grid2D::from_shape_vec(
-        (cfg.grid_width, cfg.grid_width),
-        vec![Vec2::ZERO; cfg.grid_width.pow(2)],
-    )
-        .unwrap();
-
-    for y in 0..cfg.grid_width {
-        for x in 0..cfg.grid_width {
-            output[(x, y)] = Vec2::new(x as f32, y as f32) * cfg.dx;
-        }
-    }
-
-    output
-}
-
 /// Returns false if out of bounds with the given width
 fn bounds_check<T>(pt_x: i32, pt_y: i32, arr: &Array2<T>) -> Option<(usize, usize)> {
     (pt_x >= 0 && pt_y >= 0 && pt_x < arr.ncols() as i32 && pt_y < arr.nrows() as i32)

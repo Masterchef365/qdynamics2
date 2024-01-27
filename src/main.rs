@@ -175,7 +175,7 @@ impl eframe::App for TemplateApp {
                         "δ(r) (unaliased)",
                     )
                     .changed();
-                needs_recalculate |= ui
+                needs_reset |= ui
                     .selectable_value(
                         &mut self.sim.cfg.potental_mode,
                         PotentialMode::Delta,
