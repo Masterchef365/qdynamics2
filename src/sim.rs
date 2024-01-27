@@ -123,6 +123,7 @@ impl Sim {
     pub fn step(&mut self, energy_level: usize) {
         self.recalculate();
 
+        // Accumulate electric -> nuclear forces
         let art = self.elec_state.as_ref().unwrap();
         for nucleus in &mut self.state.nuclei {
             let psi = &art.eigenstates[energy_level];
@@ -141,6 +142,25 @@ impl Sim {
                 }
             }
 
+            nucleus.pos += nucleus.vel * self.cfg.nuclear_dt;
+        }
+
+        // Accumulate nuclear -> nuclear forces
+        for i in 0..self.state.nuclei.len() {
+            for j in 0..self.state.nuclei.len() {
+                if i == j {
+                    continue;
+                }
+
+                let diff = self.state.nuclei[i].pos - self.state.nuclei[j].pos;
+                let force = diff.normalize() / diff.length_squared();
+
+                self.state.nuclei[i].vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
+            }
+        }
+
+        // Time step
+        for nucleus in &mut self.state.nuclei {
             nucleus.pos += nucleus.vel * self.cfg.nuclear_dt;
         }
     }
