@@ -324,7 +324,7 @@ const N: usize = 20;
 fn initial_cfg() -> SimConfig {
     SimConfig {
         eigval_search: Order::Smallest,
-        potental_mode: PotentialMode::Delta,
+        potental_mode: PotentialMode::DeltaAntialias,
         dx: 1.0,
         grid_width: N,
         v0: -1.,
