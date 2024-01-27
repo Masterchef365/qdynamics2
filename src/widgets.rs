@@ -130,7 +130,7 @@ impl ImageViewWidget {
                         //paint.arrow(center, egui::Vec2::from(nucleus.vel.to_array()), Stroke::new(1.0, Color32::RED));
 
                         // Acceleration arrow
-                        let accel = interpolate_force_vector(&art.ham, psi, nucleus.pos);
+                        let accel = interpolate_force_vector(&art, view.viewed_eigenstate, nucleus.pos);
                         paint.arrow(
                             center,
                             egui::Vec2::from(accel.to_array()) * display_mult * 10.,

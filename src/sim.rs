@@ -125,8 +125,8 @@ impl Sim {
         for nucleus in &mut self.state.nuclei {
             let psi = &art.eigenstates[energy_level];
 
-            if let Some((x, y)) = bounds_check(nucleus.pos.x as i32, nucleus.pos.y as i32, psi) {
-                let force = interpolate_force_vector(&art.ham, psi, nucleus.pos);
+            if let Some((x, y)) = bounds_check(nucleus.pos.x.round() as i32, nucleus.pos.y.round() as i32, psi) {
+                let force = interpolate_force_vector(&art, energy_level, nucleus.pos);
 
                 nucleus.vel += force * dt / NUCLEAR_MASS;
             } else {
@@ -144,7 +144,7 @@ impl Sim {
     }
 }
 
-pub fn interpolate_force_vector(ham: &HamiltonianObject, psi: &Grid2D<f32>, pos: Vec2) -> Vec2 {
+pub fn interpolate_force_vector(art: &SimArtefacts, energy_level: usize, pos: Vec2) -> Vec2 {
     let tl_x = pos.x as i32;
     let tl_y = pos.y as i32;
 
@@ -161,8 +161,9 @@ pub fn interpolate_force_vector(ham: &HamiltonianObject, psi: &Grid2D<f32>, pos:
     // Accumulate samples into adjacent points
     let mut sum = Vec2::ZERO;
     for (off_x, off_y, interp_x, interp_y) in parts {
-        if let Some(grid_pos@(x, y)) = bounds_check(tl_x + off_x, tl_y + off_y, psi) {
-            sum += psi[grid_pos] * interp_x * interp_y * gradient_at(x, y, psi);
+        let psi = &art.eigenstates[energy_level];
+        if let Some((x, y)) = bounds_check(tl_x + off_x, tl_y + off_y, psi) {
+            sum += interp_x * interp_y * compute_force_at(art, energy_level, x, y);
         }
     }
 
