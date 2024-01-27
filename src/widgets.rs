@@ -139,6 +139,12 @@ impl ImageViewWidget {
                             egui::Vec2::from(force.to_array()) * display_mult * 10.,
                             Stroke::new(1.0, Color32::GREEN),
                         );
+                        paint.arrow(
+                            center,
+                            egui::Vec2::from(electric_force.to_array()) * display_mult * 10.,
+                            Stroke::new(1.0, Color32::RED),
+                        );
+
                     }
 
                     // Draw arrows for direction

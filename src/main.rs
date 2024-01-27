@@ -284,7 +284,7 @@ impl eframe::App for TemplateApp {
 
 impl TemplateApp {
     fn recalculate(&mut self, ctx: &egui::Context) {
-        self.sim.recalculate();
+        self.sim.recalculate_elec_state();
         self.update_view(ctx);
     }
 

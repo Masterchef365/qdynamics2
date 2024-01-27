@@ -156,7 +156,7 @@ impl Sim {
         for i in 0..self.state.nuclei.len() {
             let force =
                 calculate_classical_force(i, &self.state) * self.cfg.nuclear_dt / NUCLEAR_MASS;
-            self.state.nuclei[i].vel += force
+            self.state.nuclei[i].vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
         }
 
         // Time step
@@ -174,6 +174,7 @@ pub fn calculate_classical_force(idx: usize, state: &SimState) -> Vec2 {
         }
 
         let diff = state.nuclei[idx].pos - state.nuclei[j].pos;
+        dbg!(diff);
         let force = diff.normalize() / diff.length_squared();
         total_force += force;
     }
