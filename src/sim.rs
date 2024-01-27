@@ -117,7 +117,56 @@ impl Sim {
         &self.cfg
     }
 
-    pub fn step(&mut self) {}
+    pub fn step(&mut self, energy_level: usize) {
+        self.recalculate();
+
+        let dt = 10.0;
+        let art = self.artefacts.as_ref().unwrap();
+        for nucleus in &mut self.state.nuclei {
+            let psi = &art.eigenstates[energy_level];
+
+            if let Some((x, y)) = bounds_check(nucleus.pos.x as i32, nucleus.pos.y as i32, psi) {
+                let force = interpolate_force_vector(&art.ham, psi, nucleus.pos);
+
+                nucleus.vel += force * dt / NUCLEAR_MASS;
+            } else {
+                if nucleus.pos.x < 0.0 || nucleus.pos.x + 1.0 > psi.ncols() as f32 {
+                    nucleus.vel.x *= -1.0;
+                }
+
+                if nucleus.pos.y < 0.0 || nucleus.pos.y + 1.0 > psi.nrows() as f32 {
+                    nucleus.vel.y *= -1.0;
+                }
+            }
+
+            nucleus.pos += nucleus.vel * dt;
+        }
+    }
+}
+
+pub fn interpolate_force_vector(ham: &HamiltonianObject, psi: &Grid2D<f32>, pos: Vec2) -> Vec2 {
+    let tl_x = pos.x as i32;
+    let tl_y = pos.y as i32;
+
+    let xf = pos.x.fract();
+    let yf = pos.y.fract();
+
+    let parts = [
+        (0, 0, 1. - xf, 1. - yf),
+        (1, 0, xf, 1. - yf),
+        (0, 1, 1. - xf, yf),
+        (1, 1, xf, yf),
+    ];
+
+    // Accumulate samples into adjacent points
+    let mut sum = Vec2::ZERO;
+    for (off_x, off_y, interp_x, interp_y) in parts {
+        if let Some(grid_pos@(x, y)) = bounds_check(tl_x + off_x, tl_y + off_y, psi) {
+            sum += psi[grid_pos] * interp_x * interp_y * gradient_at(x, y, psi);
+        }
+    }
+
+    sum
 }
 
 fn calculate_artefacts(
@@ -158,7 +207,7 @@ fn calculate_artefacts(
 fn calculate_delta_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
     let mut pot = Grid2D::zeros((cfg.grid_width, cfg.grid_width));
     for nucleus in &state.nuclei {
-        if let Some(grid_coord) = bounds_check(nucleus.pos.x as i32, nucleus.pos.y as i32, &pot) {
+        if let Some(grid_coord) = bounds_check(nucleus.pos.x.round() as i32, nucleus.pos.y.round() as i32, &pot) {
             pot[grid_coord] += cfg.v0;
         }
     }
@@ -168,23 +217,35 @@ fn calculate_delta_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
 
 /// Calculate the electric potential in the position basis
 fn calculate_potential_r_squared(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
-    let grid_positions = grid_positions(cfg);
+    let mut potential = Grid2D::zeros((cfg.grid_width, cfg.grid_width));
 
-    let v = grid_positions
-        .iter()
-        .map(|grid_pos| {
-            state
-                .nuclei
-                .iter()
-                .map(|nucleus| {
-                    let r = (nucleus.pos - *grid_pos).length();
-                    softened_potential(r, cfg)
-                })
-                .sum()
-        })
-        .collect();
+    for nucleus in &state.nuclei {
+        interp_write(&mut potential, nucleus.pos.x, nucleus.pos.y, cfg.v0);
+    }
 
-    Grid2D::from_shape_vec((cfg.grid_width, cfg.grid_width), v).unwrap()
+    potential
+}
+
+fn interp_write(grid: &mut Grid2D<f32>, x: f32, y: f32, value: f32) {
+    let tl_x = x as i32;
+    let tl_y = y as i32;
+
+    let xf = x.fract();
+    let yf = y.fract();
+
+    let parts = [
+        (0, 0, 1. - xf, 1. - yf),
+        (1, 0, xf, 1. - yf),
+        (0, 1, 1. - xf, yf),
+        (1, 1, xf, yf),
+    ];
+
+    // Accumulate samples into adjacent points
+    for (off_x, off_y, interp_x, interp_y) in parts {
+        if let Some(grid_pos) = bounds_check(tl_x + off_x, tl_y + off_y, &grid) {
+            grid[grid_pos] += interp_x * interp_y * value;
+        }
+    }
 }
 
 fn softened_potential(r: f32, cfg: &SimConfig) -> f32 {
@@ -197,7 +258,7 @@ fn grid_positions(cfg: &SimConfig) -> Grid2D<Vec2> {
         (cfg.grid_width, cfg.grid_width),
         vec![Vec2::ZERO; cfg.grid_width.pow(2)],
     )
-    .unwrap();
+        .unwrap();
 
     for y in 0..cfg.grid_width {
         for x in 0..cfg.grid_width {
@@ -292,41 +353,49 @@ impl HamiltonianObject {
         }
         mtx
     }
+}
 
-    pub fn compute_force_at(&self, x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
-        // Gradient of the hamiltonian, we'll use a five-point finite difference stencil in each direction
-        // This is the third derivative. Note that the potential is _not_ included here, as this is
-        // better handled by the classical subsystem!
 
-        let mut sum_x: f32 = 0.;
-        let mut sum_y: f32 = 0.;
+pub fn gradient_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
+    let mut sum_x: f32 = 0.;
+    let mut sum_y: f32 = 0.;
 
-        for (offset, coefficient) in (-2..=2).zip(&[1. / 2., -1., 0., 1., -1. / 2.]) {
-            if let Some(grid_coord) = bounds_check(x as i32 + offset, y as i32, &psi) {
-                sum_x += psi[grid_coord] * coefficient;
-            }
-
-            if let Some(grid_coord) = bounds_check(x as i32, y as i32 + offset, &psi) {
-                sum_y += psi[grid_coord] * coefficient;
-            }
+    // Five-point stencil https://en.wikipedia.org/wiki/Five-point_stencil
+    for (offset, coefficient) in (-2..=2).zip(&[1. / 12., -8./12., 0., 8./12., -1. / 12.]) {
+        if let Some(grid_coord) = bounds_check(x as i32 + offset, y as i32, &psi) {
+            sum_x += psi[grid_coord] * coefficient;
         }
 
-        psi[(x, y)] * Vec2::new(sum_x, sum_y)
+        if let Some(grid_coord) = bounds_check(x as i32, y as i32 + offset, &psi) {
+            sum_y += psi[grid_coord] * coefficient;
+        }
     }
+
+    Vec2::new(sum_x, sum_y)
+}
+
+pub fn compute_force_at(art: &SimArtefacts, energy_level: usize, x: usize, y: usize) -> Vec2 {
+    let psi = &art.eigenstates[energy_level];
+    let grad_psi = gradient_at(x, y, psi);
+    let energy = art.energies[energy_level];
+
+    // grad * H * psi = E * grad * psi
+
+    -psi[(x, y)] * energy * grad_psi
 }
 
 /*
-fn hamiltonian_flat(
-cfg: &SimConfig,
-potential: &StateVector,
-flat_input_vect: &[Complex64],
-flat_output_vect: &mut [Complex64],
-) {
-let psi = SpatialVector2D::from_array(potential.ncols(), flat_input_vect.to_vec());
-let output = hamiltonian(cfg, &psi, potential);
-flat_output_vect.copy_from_slice(output.data());
-}
-*/
+   fn hamiltonian_flat(
+   cfg: &SimConfig,
+   potential: &StateVector,
+   flat_input_vect: &[Complex64],
+   flat_output_vect: &mut [Complex64],
+   ) {
+   let psi = SpatialVector2D::from_array(potential.ncols(), flat_input_vect.to_vec());
+   let output = hamiltonian(cfg, &psi, potential);
+   flat_output_vect.copy_from_slice(output.data());
+   }
+   */
 
 /// Eigenvectors
 pub type Cache = Array2<f32>;

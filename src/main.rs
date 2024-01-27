@@ -59,6 +59,7 @@ pub struct TemplateApp {
     sim: Sim,
     img: ImageViewWidget,
     view_cfg: StateViewConfig,
+    paused: bool,
 }
 
 impl Default for TemplateApp {
@@ -70,6 +71,7 @@ impl Default for TemplateApp {
         let img = ImageViewWidget::default();
 
         Self {
+            paused: true,
             sim,
             img,
             view_cfg: StateViewConfig::default(),
@@ -92,10 +94,13 @@ impl TemplateApp {
 impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.sim.step();
+        ctx.request_repaint();
 
         let mut needs_update = false;
         let mut needs_reset = false;
+        if !self.paused {
+            self.sim.step(self.view_cfg.viewed_eigenstate);
+        }
 
         /*
         if self.max_states_is_grid_width {
@@ -107,11 +112,29 @@ impl eframe::App for TemplateApp {
         */
 
         SidePanel::left("left_panel").show(ctx, |ui| {
+            if ui.button("Reset").clicked() {
+                *self = Self::default();
+            }
+
             if let Some(artefacts) = self.sim.artefacts.as_ref() {
+                ui.checkbox(&mut self.paused, "Paused");
+
                 ui.strong("Viewed eigenstate:");
                 ui.horizontal(|ui| {
-                    needs_reset |= ui.selectable_value(&mut self.sim.cfg.eigval_search, Order::Smallest, "Smallest E").changed();
-                    needs_reset |= ui.selectable_value(&mut self.sim.cfg.eigval_search, Order::Largest, "Largest E").changed();
+                    needs_reset |= ui
+                        .selectable_value(
+                            &mut self.sim.cfg.eigval_search,
+                            Order::Smallest,
+                            "Smallest E",
+                        )
+                        .changed();
+                    needs_reset |= ui
+                        .selectable_value(
+                            &mut self.sim.cfg.eigval_search,
+                            Order::Largest,
+                            "Largest E",
+                        )
+                        .changed();
                 });
 
                 let energies = &artefacts.energies;
