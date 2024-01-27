@@ -4,7 +4,7 @@ use linfa_linalg::Order;
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
-use qdynamics::sim::{Nucleus, PotentialMode, Sim, SimArtefacts, SimConfig, SimState};
+use qdynamics::sim::{Nucleus, PotentialMode, Sim, SimElectronicState, SimConfig, SimState};
 use widgets::{
     display_imagedata, electric_editor, nucleus_editor, ImageViewWidget, StateViewConfig,
 };
@@ -116,7 +116,7 @@ impl eframe::App for TemplateApp {
                 *self = Self::default();
             }
 
-            if let Some(artefacts) = self.sim.artefacts.as_ref() {
+            if let Some(elec_state) = self.sim.elec_state.as_ref() {
                 ui.checkbox(&mut self.paused, "Paused");
 
                 ui.strong("Viewed eigenstate:");
@@ -137,7 +137,7 @@ impl eframe::App for TemplateApp {
                         .changed();
                 });
 
-                let energies = &artefacts.energies;
+                let energies = &elec_state.energies;
                 needs_update |= ui
                     .add(
                         DragValue::new(&mut self.view_cfg.viewed_eigenstate)
@@ -243,12 +243,12 @@ impl eframe::App for TemplateApp {
                 ui,
                 &mut self.view_cfg,
                 &mut self.sim.state,
-                self.sim.artefacts.as_ref(),
+                self.sim.elec_state.as_ref(),
             );
         });
 
         CentralPanel::default().show(ctx, |ui| {
-            if let Some(art) = &self.sim.artefacts {
+            if let Some(art) = &self.sim.elec_state {
                 needs_reset |= self
                     .img
                     .show(
@@ -278,18 +278,18 @@ impl TemplateApp {
     }
 
     fn update_view(&mut self, ctx: &egui::Context) {
-        if let Some(artefacts) = self.sim.artefacts() {
+        if let Some(elec_state) = self.sim.elec_state() {
             self.view_cfg.viewed_eigenstate = self
                 .view_cfg
                 .viewed_eigenstate
-                .min(artefacts.energies.len() - 1);
+                .min(elec_state.energies.len() - 1);
 
             /*self.img.set_state(
                 "Spronkus".into(),
                 ctx,
                 &self.view_cfg,
                 &self.sim.state(),
-                artefacts,
+                elec_state,
             );
             */
         }

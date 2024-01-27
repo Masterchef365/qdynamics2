@@ -59,7 +59,7 @@ pub struct SimState {
 
 /// Data uniquely generated from a SimState
 #[derive(Clone)]
-pub struct SimArtefacts {
+pub struct SimElectronicState {
     /// Energy eigenstates (psi_n)
     pub eigenstates: Vec<Grid2D<f32>>,
     /// Energy levels (E_n)
@@ -74,7 +74,7 @@ pub struct Sim {
     pub cfg: SimConfig,
     pub state: SimState,
     cache: Option<Cache>,
-    pub artefacts: Option<SimArtefacts>,
+    pub elec_state: Option<SimElectronicState>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,7 +89,7 @@ impl Sim {
             state: init_state,
             cfg,
             cache: None,
-            artefacts: None,
+            elec_state: None,
         };
         inst.recalculate();
         inst
@@ -100,17 +100,17 @@ impl Sim {
     }
 
     pub fn recalculate(&mut self) {
-        let (artefacts, cache) = calculate_artefacts(&self.cfg, &self.state, self.cache.take());
+        let (elec_state, cache) = calculate_electric_state(&self.cfg, &self.state, self.cache.take());
         self.cache = Some(cache);
-        self.artefacts = Some(artefacts);
+        self.elec_state = Some(elec_state);
     }
 
     pub fn state(&self) -> &SimState {
         &self.state
     }
 
-    pub fn artefacts(&self) -> Option<&SimArtefacts> {
-        self.artefacts.as_ref()
+    pub fn elec_state(&self) -> Option<&SimElectronicState> {
+        self.elec_state.as_ref()
     }
 
     pub fn cfg(&self) -> &SimConfig {
@@ -121,7 +121,7 @@ impl Sim {
         self.recalculate();
 
         let dt = 10.0;
-        let art = self.artefacts.as_ref().unwrap();
+        let art = self.elec_state.as_ref().unwrap();
         for nucleus in &mut self.state.nuclei {
             let psi = &art.eigenstates[energy_level];
 
@@ -144,7 +144,7 @@ impl Sim {
     }
 }
 
-pub fn interpolate_force_vector(art: &SimArtefacts, energy_level: usize, pos: Vec2) -> Vec2 {
+pub fn interpolate_force_vector(art: &SimElectronicState, energy_level: usize, pos: Vec2) -> Vec2 {
     let tl_x = pos.x as i32;
     let tl_y = pos.y as i32;
 
@@ -170,11 +170,11 @@ pub fn interpolate_force_vector(art: &SimArtefacts, energy_level: usize, pos: Ve
     sum
 }
 
-fn calculate_artefacts(
+fn calculate_electric_state(
     cfg: &SimConfig,
     state: &SimState,
     cache: Option<Cache>,
-) -> (SimArtefacts, Cache) {
+) -> (SimElectronicState, Cache) {
     let potential = match cfg.potental_mode {
         PotentialMode::Delta => calculate_delta_potential(cfg, state),
         PotentialMode::Kqr => calculate_potential_r_squared(cfg, state),
@@ -195,7 +195,7 @@ fn calculate_artefacts(
     */
 
     (
-        SimArtefacts {
+        SimElectronicState {
             eigenstates,
             energies,
             ham,
@@ -375,7 +375,7 @@ pub fn gradient_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
     Vec2::new(sum_x, sum_y)
 }
 
-pub fn compute_force_at(art: &SimArtefacts, energy_level: usize, x: usize, y: usize) -> Vec2 {
+pub fn compute_force_at(art: &SimElectronicState, energy_level: usize, x: usize, y: usize) -> Vec2 {
     let psi = &art.eigenstates[energy_level];
     let grad_psi = gradient_at(x, y, psi);
     let energy = art.energies[energy_level];

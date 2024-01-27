@@ -7,7 +7,7 @@ use egui::{
     CentralPanel, Color32, DragValue, Frame, Pos2, Rect, Response, SelectableLabel, SidePanel,
 };
 use ndarray::{Array2, Array3};
-use qdynamics::sim::{interpolate_force_vector, Nucleus, SimArtefacts, SimState, compute_force_at};
+use qdynamics::sim::{interpolate_force_vector, Nucleus, SimElectronicState, SimState, compute_force_at};
 
 #[derive(Clone, Copy)]
 pub struct StateViewConfig {
@@ -40,7 +40,7 @@ impl ImageViewWidget {
         ui: &mut Ui,
         view: &StateViewConfig,
         state: &mut SimState,
-        art: &SimArtefacts,
+        art: &SimElectronicState,
     ) -> egui::Response {
         let image = display_imagedata(view, art);
 
@@ -242,7 +242,7 @@ pub fn electric_editor(
     ui: &mut Ui,
     view: &mut StateViewConfig,
     state: &mut SimState,
-    artefacts: Option<&SimArtefacts>,
+    artefacts: Option<&SimElectronicState>,
 ) -> bool {
     let mut needs_update = false;
 
@@ -278,7 +278,7 @@ pub fn electric_editor(
     needs_update
 }
 
-pub fn display_imagedata(cfg: &StateViewConfig, artefacts: &SimArtefacts) -> ImageData {
+pub fn display_imagedata(cfg: &StateViewConfig, artefacts: &SimElectronicState) -> ImageData {
     let eigstate = &artefacts.eigenstates[cfg.viewed_eigenstate];
 
     let image;
