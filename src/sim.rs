@@ -197,7 +197,6 @@ fn calculate_artefacts(
 }
 
 /// Calculate the electric potential in the position basis
-<<<<<<< HEAD
 fn calculate_delta_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
     let mut pot = Grid2D::zeros((cfg.grid_width, cfg.grid_width));
     for nucleus in &state.nuclei {
@@ -211,11 +210,7 @@ fn calculate_delta_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
 
 /// Calculate the electric potential in the position basis
 fn calculate_potential_r_squared(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
-    let grid_positions = grid_positions(cfg);
-=======
-fn calculate_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
     let mut potential = Grid2D::zeros((cfg.grid_width, cfg.grid_width));
->>>>>>> 012cbd8 (Proper interpolation for potential)
 
     for nucleus in &state.nuclei {
         interp_write(&mut potential, nucleus.pos.x, nucleus.pos.y, cfg.v0);
