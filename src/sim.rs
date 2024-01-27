@@ -36,6 +36,8 @@ pub struct SimConfig {
 
     pub potental_mode: PotentialMode,
     pub eigval_search: linfa_linalg::lobpcg::Order,
+
+    pub nuclear_dt: f32,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -120,15 +122,14 @@ impl Sim {
     pub fn step(&mut self, energy_level: usize) {
         self.recalculate();
 
-        let dt = 10.0;
         let art = self.elec_state.as_ref().unwrap();
         for nucleus in &mut self.state.nuclei {
             let psi = &art.eigenstates[energy_level];
 
-            if let Some((x, y)) = bounds_check(nucleus.pos.x.round() as i32, nucleus.pos.y.round() as i32, psi) {
+            if bounds_check(nucleus.pos.x.round() as i32, nucleus.pos.y.round() as i32, psi).is_some() {
                 let force = interpolate_force_vector(&art, energy_level, nucleus.pos);
 
-                nucleus.vel += force * dt / NUCLEAR_MASS;
+                nucleus.vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
             } else {
                 if nucleus.pos.x < 0.0 || nucleus.pos.x + 1.0 > psi.ncols() as f32 {
                     nucleus.vel.x *= -1.0;
@@ -139,7 +140,7 @@ impl Sim {
                 }
             }
 
-            nucleus.pos += nucleus.vel * dt;
+            nucleus.pos += nucleus.vel * self.cfg.nuclear_dt;
         }
     }
 }

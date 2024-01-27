@@ -4,7 +4,7 @@ use linfa_linalg::Order;
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
-use qdynamics::sim::{Nucleus, PotentialMode, Sim, SimElectronicState, SimConfig, SimState};
+use qdynamics::sim::{Nucleus, PotentialMode, Sim, SimConfig, SimElectronicState, SimState};
 use widgets::{
     display_imagedata, electric_editor, nucleus_editor, ImageViewWidget, StateViewConfig,
 };
@@ -112,30 +112,13 @@ impl eframe::App for TemplateApp {
         */
 
         SidePanel::left("left_panel").show(ctx, |ui| {
-            if ui.button("Reset").clicked() {
-                *self = Self::default();
-            }
+            ui.strong("Time");
+            ui.checkbox(&mut self.paused, "Pause");
+            ui.add(DragValue::new(&mut self.sim.cfg.nuclear_dt).prefix("Nuclear dt: ").speed(1e-1));
 
+            ui.separator();
             if let Some(elec_state) = self.sim.elec_state.as_ref() {
-                ui.checkbox(&mut self.paused, "Paused");
-
-                ui.strong("Viewed eigenstate:");
-                ui.horizontal(|ui| {
-                    needs_reset |= ui
-                        .selectable_value(
-                            &mut self.sim.cfg.eigval_search,
-                            Order::Smallest,
-                            "Smallest E",
-                        )
-                        .changed();
-                    needs_reset |= ui
-                        .selectable_value(
-                            &mut self.sim.cfg.eigval_search,
-                            Order::Largest,
-                            "Largest E",
-                        )
-                        .changed();
-                });
+                ui.strong("Electronic state:");
 
                 let energies = &elec_state.energies;
                 needs_update |= ui
@@ -154,6 +137,23 @@ impl eframe::App for TemplateApp {
                 needs_update |= ui
                     .checkbox(&mut self.view_cfg.show_force_field, "Show force field")
                     .changed();
+
+                ui.horizontal(|ui| {
+                    needs_reset |= ui
+                        .selectable_value(
+                            &mut self.sim.cfg.eigval_search,
+                            Order::Smallest,
+                            "Find smallest E",
+                        )
+                        .changed();
+                    needs_reset |= ui
+                        .selectable_value(
+                            &mut self.sim.cfg.eigval_search,
+                            Order::Largest,
+                            "Largest E",
+                        )
+                        .changed();
+                });
             }
 
             ui.separator();
@@ -245,6 +245,10 @@ impl eframe::App for TemplateApp {
                 &mut self.sim.state,
                 self.sim.elec_state.as_ref(),
             );
+
+            if ui.button("Reset").clicked() {
+                *self = Self::default();
+            }
         });
 
         CentralPanel::default().show(ctx, |ui| {
@@ -322,5 +326,6 @@ fn initial_cfg() -> SimConfig {
         n_states: 10,
         num_solver_iters: 30,
         tolerance: 1e-2,
+        nuclear_dt: 10.0,
     }
 }
