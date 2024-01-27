@@ -7,7 +7,7 @@ use egui::{
     CentralPanel, Color32, DragValue, Frame, Pos2, Rect, Response, SelectableLabel, SidePanel,
 };
 use ndarray::{Array2, Array3};
-use qdynamics::sim::{calculate_electric_force, Nucleus, SimElectronicState, SimState, compute_force_at, calculate_classical_force};
+use qdynamics::sim::{calculate_electric_force, Nucleus, SimElectronicState, SimState, compute_force_at, calculate_classical_force, SimConfig};
 
 #[derive(Clone, Copy)]
 pub struct StateViewConfig {
@@ -41,6 +41,7 @@ impl ImageViewWidget {
         view: &StateViewConfig,
         state: &mut SimState,
         art: &SimElectronicState,
+        cfg: &SimConfig,
     ) -> egui::Response {
         let image = display_imagedata(view, art);
 
@@ -119,7 +120,7 @@ impl ImageViewWidget {
 
                     let psi = &art.eigenstates[view.viewed_eigenstate];
 
-                    let display_mult = 10000.;
+                    let display_mult = 100.;
 
                     // Draw nuclei
                     for (idx, nucleus) in state.nuclei.iter().enumerate() {
@@ -131,19 +132,25 @@ impl ImageViewWidget {
 
                         // Acceleration arrow
                         let electric_force = calculate_electric_force(&art, view.viewed_eigenstate, nucleus.pos);
-                        let nuclear_force = calculate_classical_force(idx, state);
+                        let nuclear_force = calculate_classical_force(idx, state, cfg);
 
-                        let force = electric_force + nuclear_force;
+                        let total_force = electric_force + nuclear_force;
                         paint.arrow(
                             center,
-                            egui::Vec2::from(force.to_array()) * display_mult * 10.,
+                            egui::Vec2::from(total_force.to_array()) * display_mult,
                             Stroke::new(1.0, Color32::GREEN),
                         );
                         paint.arrow(
                             center,
-                            egui::Vec2::from(electric_force.to_array()) * display_mult * 10.,
+                            egui::Vec2::from(electric_force.to_array()) * display_mult,
                             Stroke::new(1.0, Color32::RED),
                         );
+                        paint.arrow(
+                            center,
+                            egui::Vec2::from(nuclear_force.to_array()) * display_mult,
+                            Stroke::new(1.0, Color32::BLUE),
+                        );
+
 
                     }
 

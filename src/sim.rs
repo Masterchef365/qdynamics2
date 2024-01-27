@@ -153,7 +153,7 @@ impl Sim {
         // Accumulate nuclear -> nuclear forces
         for i in 0..self.state.nuclei.len() {
             let force =
-                calculate_classical_force(i, &self.state) * self.cfg.nuclear_dt / NUCLEAR_MASS;
+                calculate_classical_force(i, &self.state, &self.cfg) * self.cfg.nuclear_dt / NUCLEAR_MASS;
             self.state.nuclei[i].vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
         }
 
@@ -164,7 +164,7 @@ impl Sim {
     }
 }
 
-pub fn calculate_classical_force(idx: usize, state: &SimState) -> Vec2 {
+pub fn calculate_classical_force(idx: usize, state: &SimState, cfg: &SimConfig) -> Vec2 {
     let mut total_force = Vec2::ZERO;
     for j in 0..state.nuclei.len() {
         if idx == j {
@@ -172,9 +172,8 @@ pub fn calculate_classical_force(idx: usize, state: &SimState) -> Vec2 {
         }
 
         let diff = state.nuclei[idx].pos - state.nuclei[j].pos;
-        dbg!(diff);
         let force = diff.normalize() / diff.length_squared();
-        total_force += force;
+        total_force += force * cfg.v0.powi(2);
     }
     total_force
 }
@@ -202,7 +201,7 @@ pub fn calculate_electric_force(art: &SimElectronicState, energy_level: usize, p
         }
     }
 
-    sum
+    sum * NUCLEAR_MASS
 }
 
 fn calculate_electric_state(
