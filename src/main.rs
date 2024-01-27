@@ -4,7 +4,7 @@ use linfa_linalg::Order;
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
-use qdynamics::sim::{Nucleus, PotentialMode, Sim, SimConfig, SimElectronicState, SimState};
+use qdynamics::sim::{Nucleus, PotentialMode, Sim, SimConfig, SimElectronicState, SimState, NUCLEAR_MASS, ELECTRON_MASS};
 use widgets::{
     display_imagedata, electric_editor, nucleus_editor, ImageViewWidget, StateViewConfig,
 };
@@ -338,6 +338,6 @@ fn initial_cfg() -> SimConfig {
         n_states: 10,
         num_solver_iters: 30,
         tolerance: 1e-2,
-        nuclear_dt: 1.0,
+        nuclear_dt: NUCLEAR_MASS / ELECTRON_MASS,
     }
 }

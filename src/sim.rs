@@ -170,11 +170,11 @@ impl Sim {
             let electric_delta_v = delta_e_electric.abs().sqrt();
             dbg!(avg_delta_v);
             dbg!(electric_delta_v);
-            if avg_delta_v > 0.001 {
+            //if avg_delta_v > 0.001 {
                 let vel_scale_factor = electric_delta_v / avg_delta_v;
                 dbg!(vel_scale_factor);
                 delta_v.iter_mut().for_each(|v| *v *= vel_scale_factor);
-            }
+            //}
         }
 
         // Time step
