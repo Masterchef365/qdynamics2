@@ -23,7 +23,7 @@ impl Default for StateViewConfig {
     fn default() -> Self {
         Self {
             viewed_eigenstate: 0,
-            show_probability: false,
+            show_probability: true,
             show_force_field: false,
         }
     }
