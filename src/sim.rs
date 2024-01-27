@@ -200,7 +200,7 @@ fn calculate_artefacts(
 fn calculate_delta_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
     let mut pot = Grid2D::zeros((cfg.grid_width, cfg.grid_width));
     for nucleus in &state.nuclei {
-        if let Some(grid_coord) = bounds_check(nucleus.pos.x as i32, nucleus.pos.y as i32, &pot) {
+        if let Some(grid_coord) = bounds_check(nucleus.pos.x.round() as i32, nucleus.pos.y.round() as i32, &pot) {
             pot[grid_coord] += cfg.v0;
         }
     }
