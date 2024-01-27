@@ -103,7 +103,8 @@ impl Sim {
     }
 
     pub fn recalculate(&mut self) {
-        let (elec_state, cache) = calculate_electric_state(&self.cfg, &self.state, self.cache.take());
+        let (elec_state, cache) =
+            calculate_electric_state(&self.cfg, &self.state, self.cache.take());
         self.cache = Some(cache);
         self.elec_state = Some(elec_state);
     }
@@ -128,7 +129,13 @@ impl Sim {
         for nucleus in &mut self.state.nuclei {
             let psi = &art.eigenstates[energy_level];
 
-            if bounds_check(nucleus.pos.x.round() as i32, nucleus.pos.y.round() as i32, psi).is_some() {
+            if bounds_check(
+                nucleus.pos.x.round() as i32,
+                nucleus.pos.y.round() as i32,
+                psi,
+            )
+            .is_some()
+            {
                 let force = interpolate_force_vector(&art, energy_level, nucleus.pos);
 
                 nucleus.vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
@@ -147,16 +154,9 @@ impl Sim {
 
         // Accumulate nuclear -> nuclear forces
         for i in 0..self.state.nuclei.len() {
-            for j in 0..self.state.nuclei.len() {
-                if i == j {
-                    continue;
-                }
-
-                let diff = self.state.nuclei[i].pos - self.state.nuclei[j].pos;
-                let force = diff.normalize() / diff.length_squared();
-
-                self.state.nuclei[i].vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
-            }
+            let force =
+                calculate_classical_force(i, &self.state) * self.cfg.nuclear_dt / NUCLEAR_MASS;
+            self.state.nuclei[i].vel += force
         }
 
         // Time step
@@ -164,6 +164,20 @@ impl Sim {
             nucleus.pos += nucleus.vel * self.cfg.nuclear_dt;
         }
     }
+}
+
+pub fn calculate_classical_force(idx: usize, state: &SimState) -> Vec2 {
+    let mut total_force = Vec2::ZERO;
+    for j in 0..state.nuclei.len() {
+        if idx == j {
+            continue;
+        }
+
+        let diff = state.nuclei[idx].pos - state.nuclei[j].pos;
+        let force = diff.normalize() / diff.length_squared();
+        total_force += force;
+    }
+    total_force
 }
 
 pub fn interpolate_force_vector(art: &SimElectronicState, energy_level: usize, pos: Vec2) -> Vec2 {
@@ -207,13 +221,13 @@ fn calculate_electric_state(
     let (mut energies, mut eigenstates, mut cache) = solve_schrödinger(cfg, &ham, cache);
 
     /*
-    // THIS IS A WORKAROUND TO A KNOWN BEHAVIOUR EFFECTING CONVERGENCE 
-    // If there's at least one negative potential, we should have a bound state. 
+    // THIS IS A WORKAROUND TO A KNOWN BEHAVIOUR EFFECTING CONVERGENCE
+    // If there's at least one negative potential, we should have a bound state.
     // If this is not the case, then we should try re-calculating without the preconditioner.
     // This costs a lot of CPU cycles but ensures convergence
     if cfg.v0 < 0. && state.nuclei.len() >= 1 && energies[0] > 0. {
-        eprintln!("Positive first energy refresh triggered");
-        (energies, eigenstates, cache) = solve_schrödinger(cfg, &ham, None);
+    eprintln!("Positive first energy refresh triggered");
+    (energies, eigenstates, cache) = solve_schrödinger(cfg, &ham, None);
     }
     */
 
@@ -231,7 +245,11 @@ fn calculate_electric_state(
 fn calculate_delta_potential(cfg: &SimConfig, state: &SimState) -> Grid2D<f32> {
     let mut pot = Grid2D::zeros((cfg.grid_width, cfg.grid_width));
     for nucleus in &state.nuclei {
-        if let Some(grid_coord) = bounds_check(nucleus.pos.x.round() as i32, nucleus.pos.y.round() as i32, &pot) {
+        if let Some(grid_coord) = bounds_check(
+            nucleus.pos.x.round() as i32,
+            nucleus.pos.y.round() as i32,
+            &pot,
+        ) {
             pot[grid_coord] += cfg.v0;
         }
     }
@@ -287,8 +305,6 @@ fn interp_write(grid: &mut Grid2D<f32>, x: f32, y: f32, value: f32) {
         }
     }
 }
-
-
 
 /*
 ///
@@ -370,13 +386,12 @@ impl HamiltonianObject {
     }
 }
 
-
 pub fn gradient_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
     let mut sum_x: f32 = 0.;
     let mut sum_y: f32 = 0.;
 
     // Five-point stencil https://en.wikipedia.org/wiki/Five-point_stencil
-    for (offset, coefficient) in (-2..=2).zip(&[1. / 12., -8./12., 0., 8./12., -1. / 12.]) {
+    for (offset, coefficient) in (-2..=2).zip(&[1. / 12., -8. / 12., 0., 8. / 12., -1. / 12.]) {
         if let Some(grid_coord) = bounds_check(x as i32 + offset, y as i32, &psi) {
             sum_x += psi[grid_coord] * coefficient;
         }
@@ -400,17 +415,17 @@ pub fn compute_force_at(art: &SimElectronicState, energy_level: usize, x: usize,
 }
 
 /*
-   fn hamiltonian_flat(
-   cfg: &SimConfig,
-   potential: &StateVector,
-   flat_input_vect: &[Complex64],
-   flat_output_vect: &mut [Complex64],
-   ) {
-   let psi = SpatialVector2D::from_array(potential.ncols(), flat_input_vect.to_vec());
-   let output = hamiltonian(cfg, &psi, potential);
-   flat_output_vect.copy_from_slice(output.data());
-   }
-   */
+fn hamiltonian_flat(
+cfg: &SimConfig,
+potential: &StateVector,
+flat_input_vect: &[Complex64],
+flat_output_vect: &mut [Complex64],
+) {
+let psi = SpatialVector2D::from_array(potential.ncols(), flat_input_vect.to_vec());
+let output = hamiltonian(cfg, &psi, potential);
+flat_output_vect.copy_from_slice(output.data());
+}
+*/
 
 /// Eigenvectors
 pub type Cache = Array2<f32>;
@@ -466,9 +481,11 @@ fn solve_schrödinger(
 
 impl Nucleus {
     pub fn stationary_at(pos: Vec2) -> Self {
-        Self { vel: Vec2::ZERO, pos }
+        Self {
+            vel: Vec2::ZERO,
+            pos,
+        }
     }
-
 }
 impl Default for Nucleus {
     fn default() -> Self {
