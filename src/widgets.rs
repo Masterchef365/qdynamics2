@@ -7,7 +7,7 @@ use egui::{
     CentralPanel, Color32, DragValue, Frame, Pos2, Rect, Response, SelectableLabel, SidePanel,
 };
 use ndarray::{Array2, Array3};
-use qdynamics::sim::{Nucleus, SimArtefacts, SimState};
+use qdynamics::sim::{interpolate_force_vector, Nucleus, SimArtefacts, SimState};
 
 #[derive(Clone, Copy)]
 pub struct StateViewConfig {
@@ -84,10 +84,10 @@ impl ImageViewWidget {
                     let tex_size = egui::Vec2::from(tex_meta.size.map(|sz| sz as f32));
 
                     let sim_coord_to_egui_coord = |sim_coord: glam::Vec2| {
+                        let pt = egui::Vec2::from(sim_coord.to_array());
                         resp.rect.min
-                                //+ ((pt + egui::Vec2::splat(0.5)) * image_size_egui)
-                                + (egui::Vec2::from(sim_coord.to_array()) * image_size_egui)
-                                    / tex_size
+                                + (pt + egui::Vec2::splat(0.5)) * image_size_egui / tex_size
+                                //+ pt * image_size_egui / tex_size
                     };
 
                     /*
@@ -117,26 +117,38 @@ impl ImageViewWidget {
                         }
                     }
 
+                    let psi = &art.eigenstates[view.viewed_eigenstate];
+
+                    let display_mult = 100.;
+
                     // Draw nuclei
                     for nucleus in &state.nuclei {
-                        paint.circle(
-                            sim_coord_to_egui_coord(nucleus.pos),
-                            7.0,
-                            Color32::GREEN,
-                            Stroke::NONE,
+                        let center = sim_coord_to_egui_coord(nucleus.pos);
+                        paint.circle(center, 7.0, Color32::GREEN, Stroke::NONE);
+
+                        // Velocity arrow
+                        //paint.arrow(center, egui::Vec2::from(nucleus.vel.to_array()), Stroke::new(1.0, Color32::RED));
+
+                        // Acceleration arrow
+                        let accel = interpolate_force_vector(&art.ham, psi, nucleus.pos);
+                        paint.arrow(
+                            center,
+                            egui::Vec2::from(accel.to_array()) * display_mult * 10.,
+                            Stroke::new(1.0, Color32::RED),
                         );
                     }
 
                     // Draw arrows for direction
                     if view.show_force_field {
-                        let psi = &art.eigenstates[view.viewed_eigenstate];
                         for y in 0..psi.nrows() {
                             for x in 0..psi.ncols() {
                                 let force = art.ham.compute_force_at(x, y, psi);
                                 //let force = force.normalize_or_zero();
                                 paint.arrow(
-                                    sim_coord_to_egui_coord(glam::Vec2::new(x as f32, y as f32) + 0.5),
-                                    egui::Vec2::new(force.x, force.y) * 80.,
+                                    sim_coord_to_egui_coord(
+                                        glam::Vec2::new(x as f32, y as f32),
+                                    ),
+                                    egui::Vec2::new(force.x, force.y) * display_mult,
                                     Stroke::new(2.0, Color32::DARK_GREEN),
                                 );
                             }

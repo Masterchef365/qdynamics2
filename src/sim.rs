@@ -139,7 +139,7 @@ impl Sim {
     }
 }
 
-fn interpolate_force_vector(ham: &HamiltonianObject, psi: &Grid2D<f32>, pos: Vec2) -> Vec2 {
+pub fn interpolate_force_vector(ham: &HamiltonianObject, psi: &Grid2D<f32>, pos: Vec2) -> Vec2 {
     let tl_x = pos.x as i32;
     let tl_y = pos.y as i32;
 
