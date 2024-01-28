@@ -6,7 +6,7 @@ use ndarray::{Array1, Array2};
 use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
 // TODO: Set these parameters ...
-pub const NUCLEAR_MASS: f32 = 1836.2; // μ = Mp/Me
+pub const NUCLEAR_MASS: f32 = 136.2; // μ = Mp/Me
 pub const ELECTRON_MASS: f32 = 1.0;
 pub const HBAR: f32 = 1.0;
 
@@ -122,7 +122,28 @@ impl Sim {
     }
 
     pub fn step(&mut self, energy_level: usize) {
+        let elec_energy_before = self.elec_state().map(|s| s.energies[energy_level]);
         self.recalculate_elec_state();
+        let elec_energy_after = self.elec_state().unwrap().energies[energy_level];
+
+        // Work done on the electric system
+        let elec_delta_e = elec_energy_after - elec_energy_before.unwrap_or(elec_energy_after);
+        let nuclear_energy = self.state.nuclear_total_energy(&self.cfg);
+        if nuclear_energy > 0. {
+            dbg!(elec_delta_e, nuclear_energy);
+            let c = 1.0 - elec_delta_e / nuclear_energy;
+            if c > 0.0 {
+                let vel_scale_factor = c.sqrt();
+                dbg!(vel_scale_factor);
+
+                eprintln!();
+
+                self.state
+                    .nuclei
+                    .iter_mut()
+                    .for_each(|nuc| nuc.vel *= vel_scale_factor);
+            }
+        }
 
         // Accumulate electric -> nuclear forces
         let art = self.elec_state.as_ref().unwrap();
@@ -501,4 +522,33 @@ fn state_to_vector(state: Grid2D<f32>) -> Array1<f32> {
 
 fn vector_to_state(state: Array1<f32>, cfg: &SimConfig) -> Grid2D<f32> {
     state.into_shape((cfg.grid_width, cfg.grid_width)).unwrap()
+}
+
+impl SimState {
+    pub fn nuclear_kinetic_energy(&self) -> f32 {
+        self.nuclei
+            .iter()
+            .map(|nuc| NUCLEAR_MASS * nuc.vel.length_squared() / 2.)
+            .sum()
+    }
+
+    pub fn nuclear_potential_energy(&self, cfg: &SimConfig) -> f32 {
+        let mut sum = 0.0;
+
+        for i in 0..self.nuclei.len() {
+            for j in 1..i {
+                let a = &self.nuclei[i];
+                let b = &self.nuclei[j];
+                let diff = a.pos - b.pos;
+                // Assume K = 1
+                sum += cfg.v0.powi(2) / diff.length_squared();
+            }
+        }
+
+        sum
+    }
+
+    pub fn nuclear_total_energy(&self, cfg: &SimConfig) -> f32 {
+        self.nuclear_kinetic_energy() + self.nuclear_potential_energy(cfg)
+    }
 }
