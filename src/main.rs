@@ -117,7 +117,7 @@ impl eframe::App for TemplateApp {
             ui.add(
                 DragValue::new(&mut self.sim.cfg.nuclear_dt)
                     .prefix("Nuclear dt: ")
-                    .speed(1e-1),
+                    .speed(1e-3),
             );
 
             ui.separator();

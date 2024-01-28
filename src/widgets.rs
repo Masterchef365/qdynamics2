@@ -23,7 +23,7 @@ impl Default for StateViewConfig {
     fn default() -> Self {
         Self {
             viewed_eigenstate: 0,
-            show_probability: false,
+            show_probability: true,
             show_force_field: false,
         }
     }
@@ -35,7 +35,7 @@ pub struct ImageViewWidget {
 }
 
 impl ImageViewWidget {
-    const OPTS: TextureOptions = TextureOptions::NEAREST;
+    const OPTS: TextureOptions = TextureOptions::LINEAR;
 
     pub fn show(
         &mut self,
