@@ -59,7 +59,8 @@ pub struct TemplateApp {
     sim: Sim,
     img: ImageViewWidget,
     view_cfg: StateViewConfig,
-    paused: bool,
+    paused_nuclei: bool,
+    paused_electrons: bool,
 }
 
 impl Default for TemplateApp {
@@ -71,7 +72,8 @@ impl Default for TemplateApp {
         let img = ImageViewWidget::default();
 
         Self {
-            paused: true,
+            paused_electrons: false,
+            paused_nuclei: true,
             sim,
             img,
             view_cfg: StateViewConfig::default(),
@@ -98,7 +100,7 @@ impl eframe::App for TemplateApp {
 
         let mut needs_update = false;
         let mut needs_reset = false;
-        if !self.paused {
+        if !self.paused_nuclei {
             self.sim.step(self.view_cfg.viewed_eigenstate);
         }
 
@@ -113,7 +115,8 @@ impl eframe::App for TemplateApp {
 
         SidePanel::left("left_panel").show(ctx, |ui| {
             ui.strong("Time");
-            ui.checkbox(&mut self.paused, "Pause");
+            ui.checkbox(&mut self.paused_nuclei, "Pause nuclei");
+            ui.checkbox(&mut self.paused_electrons, "Pause electrons");
             ui.add(
                 DragValue::new(&mut self.sim.cfg.nuclear_dt)
                     .prefix("Nuclear dt: ")
@@ -280,7 +283,9 @@ impl eframe::App for TemplateApp {
 
         if needs_reset {
             self.sim.clear_cache();
-            self.recalculate(ctx);
+            if !self.paused_electrons {
+                self.recalculate(ctx);
+            }
         } else if needs_update {
             self.update_view(ctx);
         }
