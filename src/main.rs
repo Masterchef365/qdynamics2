@@ -344,12 +344,12 @@ fn initial_cfg() -> SimConfig {
         potental_mode: PotentialMode::DeltaAntialias,
         dx: 1.0,
         grid_width: N,
-        v0: -1.,
+        v0: -0.4,
         v_soft: 0.1,
         v_scale: 1.,
         n_states: 10,
         num_solver_iters: 30,
         tolerance: 1e-2,
-        nuclear_dt: 1.0,
+        nuclear_dt: 10.0,
     }
 }

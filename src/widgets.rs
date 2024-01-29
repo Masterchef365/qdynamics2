@@ -120,7 +120,7 @@ impl ImageViewWidget {
 
                     let psi = &art.eigenstates[state.energy_level];
 
-                    let display_mult = 100000.;
+                    let display_mult = 1000.;
 
                     // Draw nuclei
                     for (idx, nucleus) in state.nuclei.iter().enumerate() {
