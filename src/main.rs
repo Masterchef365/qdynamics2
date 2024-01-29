@@ -319,10 +319,16 @@ fn initial_state(cfg: &SimConfig) -> SimState {
         coeffs: (0..cfg.grid_width.pow(2))
             .map(|n| if n == 0 { 1.0 } else { 0.0 })
             .collect(),
-        nuclei: vec![Nucleus {
-            pos: Vec2::new(cfg.grid_width as f32 / 2., cfg.grid_width as f32 / 2.),
-            vel: Vec2::ZERO,
-        }],
+        nuclei: vec![
+            Nucleus {
+                pos: Vec2::new(2.*cfg.grid_width as f32 / 3., cfg.grid_width as f32 / 3.),
+                vel: Vec2::ZERO,
+            },
+            Nucleus {
+                pos: Vec2::new(cfg.grid_width as f32 / 3., 2.*cfg.grid_width as f32 / 3.),
+                vel: Vec2::ZERO,
+            }
+        ],
     }
 }
 
