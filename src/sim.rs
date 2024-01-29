@@ -235,7 +235,7 @@ pub fn calculate_electric_force(art: &SimElectronicState, energy_level: usize, p
         }
     }
 
-    sum * NUCLEAR_MASS
+    sum
 }
 
 fn calculate_electric_state(
@@ -439,11 +439,11 @@ pub fn gradient_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
 pub fn compute_force_at(art: &SimElectronicState, energy_level: usize, x: usize, y: usize) -> Vec2 {
     let psi = &art.eigenstates[energy_level];
     let grad_psi = gradient_at(x, y, psi);
-    let energy = art.energies[energy_level];
+    //let energy = art.energies[energy_level];
 
     // grad * H * psi = E * grad * psi
 
-    -psi[(x, y)] * energy * grad_psi
+    psi[(x, y)] * grad_psi
 }
 
 /*

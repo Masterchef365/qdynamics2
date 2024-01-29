@@ -120,7 +120,7 @@ impl ImageViewWidget {
 
                     let psi = &art.eigenstates[state.energy_level];
 
-                    let display_mult = 100.;
+                    let display_mult = 100000.;
 
                     // Draw nuclei
                     for (idx, nucleus) in state.nuclei.iter().enumerate() {
@@ -138,18 +138,18 @@ impl ImageViewWidget {
                         let total_force = electric_force + nuclear_force;
                         paint.arrow(
                             center,
-                            egui::Vec2::from(total_force.to_array()) * display_mult,
-                            Stroke::new(1.0, Color32::GREEN),
-                        );
-                        paint.arrow(
-                            center,
                             egui::Vec2::from(electric_force.to_array()) * display_mult,
-                            Stroke::new(1.0, Color32::RED),
+                            Stroke::new(2.0, Color32::RED),
                         );
                         paint.arrow(
                             center,
                             egui::Vec2::from(nuclear_force.to_array()) * display_mult,
-                            Stroke::new(1.0, Color32::BLUE),
+                            Stroke::new(2.0, Color32::BLUE),
+                        );
+                        paint.arrow(
+                            center,
+                            egui::Vec2::from(total_force.to_array()) * display_mult,
+                            Stroke::new(1.0, Color32::GREEN),
                         );
                     }
 
