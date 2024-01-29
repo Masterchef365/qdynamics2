@@ -131,28 +131,7 @@ impl Sim {
     }
 
     pub fn step(&mut self, energy_level: usize) {
-        let elec_energy_before = self.elec_state().map(|s| s.energies[energy_level]);
         self.recalculate_elec_state();
-        let elec_energy_after = self.elec_state().unwrap().energies[energy_level];
-
-        // Work done on the electric system
-        let elec_delta_e = elec_energy_after - elec_energy_before.unwrap_or(elec_energy_after);
-        let nuclear_energy = self.state.nuclear_total_energy(&self.cfg);
-        if nuclear_energy > 0. {
-            dbg!(elec_delta_e, nuclear_energy);
-            let c = 1.0 - elec_delta_e / nuclear_energy;
-            if c > 0.0 {
-                let vel_scale_factor = c.sqrt();
-                dbg!(vel_scale_factor);
-
-                eprintln!();
-
-                self.state
-                    .nuclei
-                    .iter_mut()
-                    .for_each(|nuc| nuc.vel *= vel_scale_factor);
-            }
-        }
 
         // Accumulate electric -> nuclear forces
         let art = self.elec_state.as_ref().unwrap();
@@ -186,6 +165,31 @@ impl Sim {
                 / NUCLEAR_MASS;
             self.state.nuclei[i].vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
         }
+
+        let needed_delta_e = self.init_energy - self.current_total_energy();
+        //dbg!(needed_delta_e);
+        //dbg!(self.state.nuclear_total_energy(&self.cfg));
+
+        // Work done on the electric system
+        let nuclear_energy = self.state.nuclear_total_energy(&self.cfg);
+        if nuclear_energy > 0. {
+            //dbg!(elec_delta_e, nuclear_energy);
+            let c = 1.0 + needed_delta_e / nuclear_energy;
+            if c > 0.0 {
+                let vel_scale_factor = c.sqrt();
+                dbg!(vel_scale_factor);
+
+                eprintln!();
+
+                self.state
+                    .nuclei
+                    .iter_mut()
+                    .for_each(|nuc| nuc.vel *= vel_scale_factor);
+            }
+        }
+
+        let needed_delta_e = self.init_energy - self.current_total_energy();
+        dbg!(needed_delta_e);
 
         // Time step
         for nucleus in &mut self.state.nuclei {
