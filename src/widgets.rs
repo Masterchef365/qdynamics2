@@ -14,7 +14,6 @@ use qdynamics::sim::{
 
 #[derive(Clone, Copy)]
 pub struct StateViewConfig {
-    pub viewed_eigenstate: usize,
     pub show_probability: bool,
     pub show_force_field: bool,
 }
@@ -22,7 +21,6 @@ pub struct StateViewConfig {
 impl Default for StateViewConfig {
     fn default() -> Self {
         Self {
-            viewed_eigenstate: 0,
             show_probability: true,
             show_force_field: false,
         }
@@ -46,7 +44,7 @@ impl ImageViewWidget {
         art: &SimElectronicState,
         cfg: &SimConfig,
     ) -> egui::Response {
-        let image = display_imagedata(view, art);
+        let image = display_imagedata(view, state, art);
 
         let ctx = ui.ctx();
         if let Some(tex) = self.tex {
@@ -120,7 +118,7 @@ impl ImageViewWidget {
                         }
                     }
 
-                    let psi = &art.eigenstates[view.viewed_eigenstate];
+                    let psi = &art.eigenstates[state.energy_level];
 
                     let display_mult = 100.;
 
@@ -134,7 +132,7 @@ impl ImageViewWidget {
 
                         // Acceleration arrow
                         let electric_force =
-                            calculate_electric_force(&art, view.viewed_eigenstate, nucleus.pos);
+                            calculate_electric_force(&art, state.energy_level, nucleus.pos);
                         let nuclear_force = calculate_classical_force(idx, state, cfg);
 
                         let total_force = electric_force + nuclear_force;
@@ -159,7 +157,7 @@ impl ImageViewWidget {
                     if view.show_force_field {
                         for y in 0..psi.nrows() {
                             for x in 0..psi.ncols() {
-                                let force = compute_force_at(art, view.viewed_eigenstate, x, y);
+                                let force = compute_force_at(art, state.energy_level, x, y);
                                 //let force = force.normalize_or_zero();
                                 paint.arrow(
                                     sim_coord_to_egui_coord(glam::Vec2::new(x as f32, y as f32)),
@@ -278,7 +276,7 @@ pub fn electric_editor(
                     needs_update |= ui.add(DragValue::new(coeff).prefix("Coeff: ")).changed();
 
                     needs_update |= ui
-                        .radio_value(&mut view.viewed_eigenstate, idx, "View")
+                        .radio_value(&mut state.energy_level, idx, "View")
                         .changed();
 
                     if let Some(art) = artefacts {
@@ -293,11 +291,11 @@ pub fn electric_editor(
     needs_update
 }
 
-pub fn display_imagedata(cfg: &StateViewConfig, artefacts: &SimElectronicState) -> ImageData {
-    let eigstate = &artefacts.eigenstates[cfg.viewed_eigenstate];
+pub fn display_imagedata(view: &StateViewConfig, state: &SimState, artefacts: &SimElectronicState) -> ImageData {
+    let eigstate = &artefacts.eigenstates[state.energy_level];
 
     let image;
-    if cfg.show_probability {
+    if view.show_probability {
         let sum: f32 = eigstate.iter().map(|v| v.powi(2)).sum();
         image = eigstate.map(|v| {
             let v = (v.powi(2) / sum) as f32;

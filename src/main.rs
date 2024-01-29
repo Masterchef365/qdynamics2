@@ -99,7 +99,7 @@ impl eframe::App for TemplateApp {
         let mut needs_update = false;
         let mut needs_reset = false;
         if !self.paused {
-            self.sim.step(self.view_cfg.viewed_eigenstate);
+            self.sim.step(self.sim.state.energy_level);
         }
 
         /*
@@ -127,13 +127,13 @@ impl eframe::App for TemplateApp {
                 let energies = &elec_state.energies;
                 needs_update |= ui
                     .add(
-                        DragValue::new(&mut self.view_cfg.viewed_eigenstate)
+                        DragValue::new(&mut self.sim.state.energy_level)
                             .clamp_range(0..=energies.len() - 1),
                     )
                     .changed();
                 ui.label(format!(
                     "Energy: {}",
-                    energies[self.view_cfg.viewed_eigenstate]
+                    energies[self.sim.state.energy_level]
                 ));
                 needs_update |= ui
                     .checkbox(&mut self.view_cfg.show_probability, "Show probability")
@@ -295,9 +295,10 @@ impl TemplateApp {
 
     fn update_view(&mut self, ctx: &egui::Context) {
         if let Some(elec_state) = self.sim.elec_state() {
-            self.view_cfg.viewed_eigenstate = self
-                .view_cfg
-                .viewed_eigenstate
+            self.sim.state.energy_level = self
+                .sim
+                .state
+                .energy_level
                 .min(elec_state.energies.len() - 1);
 
             /*self.img.set_state(

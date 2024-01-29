@@ -77,6 +77,7 @@ pub struct Sim {
     pub state: SimState,
     cache: Option<Cache>,
     pub elec_state: Option<SimElectronicState>,
+    init_energy: f32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,9 +94,17 @@ impl Sim {
             cfg,
             cache: None,
             elec_state: None,
+            init_energy: 0.0,
         };
         inst.recalculate_elec_state();
+        inst.init_energy = inst.current_total_energy();
+
         inst
+    }
+
+    fn current_total_energy(&self) -> f32 {
+        self.state.nuclear_total_energy(&self.cfg)
+            + self.elec_state.as_ref().unwrap().energies[self.state.energy_level]
     }
 
     pub fn clear_cache(&mut self) {
