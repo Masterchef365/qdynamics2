@@ -342,7 +342,6 @@ fn initial_cfg() -> SimConfig {
     SimConfig {
         eigval_search: Order::Smallest,
         potental_mode: PotentialMode::DeltaAntialias,
-        dx: 1.0,
         grid_width: N,
         v0: -ELEM_CHARGE,
         v_soft: 0.1,

@@ -16,14 +16,16 @@ pub const ELEM_CHARGE: f32 = 1.0;
 pub const PERMITTIVITY: f32 = 1.0;
 /// Mass of the nucleus
 pub const PROTON_MASS: f32 = 1836.2 * ELECTRON_MASS; // μ = Mp/Me
+pub const BORH_RADIUS: f32 =
+    PERMITTIVITY * (HBAR * HBAR) / ELECTRON_MASS / (ELEM_CHARGE * ELEM_CHARGE);
+/// Spacing between adjacent points on the grid
+pub const DX: f32 = 1.0;
 
 pub type Grid2D<T> = Array2<T>;
 
 #[derive(Clone)]
 pub struct SimConfig {
     // Options which should NOT change during runtime
-    /// Spacing between adjacent points on the grid
-    pub dx: f32,
     /// Grid width
     pub grid_width: usize,
 
@@ -206,15 +208,18 @@ impl Sim {
 
 pub fn calculate_classical_force(idx: usize, state: &SimState, cfg: &SimConfig) -> Vec2 {
     let mut total_force = Vec2::ZERO;
+
+    // Inter-atomic forces
     for j in 0..state.nuclei.len() {
         if idx == j {
             continue;
         }
 
         let diff = state.nuclei[idx].pos - state.nuclei[j].pos;
-        let force = diff.normalize() / diff.length_squared();
-        total_force += force * cfg.v0.powi(2);
+        let force = cfg.v0.powi(2) * diff.normalize() / (diff.length_squared() * PERMITTIVITY);
+        total_force += force;
     }
+
     total_force
 }
 
@@ -442,11 +447,27 @@ pub fn gradient_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
     Vec2::new(sum_x, sum_y)
 }
 
+pub fn grad_cubed_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
+    let mut sum_x: f32 = 0.;
+    let mut sum_y: f32 = 0.;
+
+    // Five-point stencil https://en.wikipedia.org/wiki/Five-point_stencil
+    for (offset, coefficient) in (-2..=2).zip(&[1. / 8., -8. / 12., 0., 8. / 12., -1. / 12.]) {
+        if let Some(grid_coord) = bounds_check(x as i32 + offset, y as i32, &psi) {
+            sum_x += psi[grid_coord] * coefficient;
+        }
+
+        if let Some(grid_coord) = bounds_check(x as i32, y as i32 + offset, &psi) {
+            sum_y += psi[grid_coord] * coefficient;
+        }
+    }
+
+    Vec2::new(sum_x, sum_y)
+}
+
 pub fn compute_force_at(art: &SimElectronicState, energy_level: usize, x: usize, y: usize) -> Vec2 {
     let psi = &art.eigenstates[energy_level];
     let grad_psi = gradient_at(x, y, psi);
-    //let energy = art.energies[energy_level];
-
     // grad * H * psi = E * grad * psi
 
     psi[(x, y)] * grad_psi
