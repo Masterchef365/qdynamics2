@@ -19,7 +19,7 @@ pub const PROTON_MASS: f32 = 1836.2 * ELECTRON_MASS; // μ = Mp/Me
 pub const BORH_RADIUS: f32 =
     PERMITTIVITY * (HBAR * HBAR) / ELECTRON_MASS / (ELEM_CHARGE * ELEM_CHARGE);
 /// Spacing between adjacent points on the grid
-pub const DX: f32 = 1./8.;
+pub const DX: f32 = 1./2.;
 
 pub type Grid2D<T> = Array2<T>;
 
@@ -469,10 +469,8 @@ pub fn grad_cubed_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
 
 pub fn compute_force_at(art: &SimElectronicState, energy_level: usize, x: usize, y: usize) -> Vec2 {
     let psi = &art.eigenstates[energy_level];
-    let grad_psi = grad_cubed_at(x, y, psi);
-    // grad * H * psi = E * grad * psi
 
-    psi[(x, y)] * grad_psi
+    -psi[(x, y)] * (-HBAR / 2. * ELECTRON_MASS) * grad_cubed_at(x, y, psi)
 }
 
 /*
