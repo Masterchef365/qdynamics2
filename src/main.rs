@@ -101,7 +101,7 @@ impl eframe::App for TemplateApp {
         let mut needs_update = false;
         let mut needs_reset = false;
         if !self.paused_nuclei {
-            self.sim.step(self.sim.state.energy_level);
+            self.sim.step();
         }
 
         /*

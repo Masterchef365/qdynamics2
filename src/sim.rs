@@ -88,7 +88,7 @@ pub struct Sim {
     pub state: SimState,
     cache: Option<Cache>,
     pub elec_state: Option<SimElectronicState>,
-    init_energy: f32,
+    pub init_energy: f32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -141,13 +141,13 @@ impl Sim {
         &self.cfg
     }
 
-    pub fn step(&mut self, energy_level: usize) {
+    pub fn step(&mut self) {
         self.recalculate_elec_state();
 
         // Accumulate electric -> nuclear forces
         let art = self.elec_state.as_ref().unwrap();
         for nucleus in &mut self.state.nuclei {
-            let psi = &art.eigenstates[energy_level];
+            let psi = &art.eigenstates[self.state.energy_level];
 
             if bounds_check(
                 nucleus.pos.x.round() as i32,
@@ -156,7 +156,7 @@ impl Sim {
             )
             .is_some()
             {
-                let force = calculate_electric_force(&art, energy_level, nucleus.pos);
+                let force = calculate_electric_force(&art, self.state.energy_level, nucleus.pos);
 
                 nucleus.vel += force * self.cfg.nuclear_dt / PROTON_MASS;
             } else {
