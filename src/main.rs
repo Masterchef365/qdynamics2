@@ -349,6 +349,6 @@ fn initial_cfg() -> SimConfig {
         n_states: 10,
         num_solver_iters: 30,
         tolerance: 1e-2,
-        nuclear_dt: 10.0,
+        nuclear_dt: 1.0,
     }
 }
