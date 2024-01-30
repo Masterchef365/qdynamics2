@@ -110,9 +110,13 @@ impl Sim {
             init_energy: 0.0,
         };
         inst.recalculate_elec_state();
-        inst.init_energy = inst.current_total_energy();
+        inst.reset_init_energy();
 
         inst
+    }
+
+    pub fn reset_init_energy(&mut self) {
+        self.init_energy = self.current_total_energy();
     }
 
     fn current_total_energy(&self) -> f32 {

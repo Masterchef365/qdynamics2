@@ -123,7 +123,12 @@ impl eframe::App for TemplateApp {
             );
 
             ui.checkbox(&mut self.sim.cfg.force_compensate_energy, "Force energy compensation");
-            ui.add(DragValue::new(&mut self.sim.init_energy).prefix("Initial energy").speed(1e-2));
+            ui.horizontal(|ui| {
+                ui.add(DragValue::new(&mut self.sim.init_energy).prefix("Initial energy: ").speed(1e-2));
+                if ui.button("Reset").clicked() {
+                    self.sim.reset_init_energy();
+                }
+            });
 
             ui.separator();
             if let Some(elec_state) = self.sim.elec_state.as_ref() {

@@ -161,7 +161,7 @@ impl ImageViewWidget {
                                 //let force = force.normalize_or_zero();
                                 paint.arrow(
                                     sim_coord_to_egui_coord(glam::Vec2::new(x as f32, y as f32)),
-                                    egui::Vec2::new(force.x, force.y) * display_mult,
+                                    egui::Vec2::new(force.x, force.y).normalized() * (force.length() * display_mult).min(20.),
                                     Stroke::new(2.0, Color32::DARK_GREEN),
                                 );
                             }
