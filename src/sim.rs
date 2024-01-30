@@ -593,13 +593,14 @@ impl SimState {
     pub fn nuclear_potential_energy(&self, cfg: &SimConfig) -> f32 {
         let mut sum = 0.0;
 
-        for i in 0..self.nuclei.len() {
-            for j in 1..i {
+        for i in 1..self.nuclei.len() {
+            for j in 0..i {
                 let a = &self.nuclei[i];
                 let b = &self.nuclei[j];
                 let diff = a.pos - b.pos;
                 // Assume K = 1
-                sum += cfg.v0.powi(2) / diff.length_squared();
+                let r = diff.length() * DX;
+                sum += -cfg.v0 / (r * PERMITTIVITY);
             }
         }
 
