@@ -49,6 +49,8 @@ pub struct SimConfig {
     pub eigval_search: linfa_linalg::lobpcg::Order,
 
     pub nuclear_dt: f32,
+
+    pub force_compensate_energy: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -183,24 +185,30 @@ impl Sim {
             self.state.nuclei[i].vel += force * self.cfg.nuclear_dt / PROTON_MASS;
         }
 
-        let needed_delta_e = self.init_energy - self.current_total_energy();
+        // Compensate for energy changes in the electric system
+        if self.cfg.force_compensate_energy {
+            let needed_delta_e = self.init_energy - self.current_total_energy();
 
-        let nuclear_energy = self.state.nuclear_total_energy(&self.cfg);
-        if nuclear_energy > 0. {
-            let c = 1.0 + needed_delta_e / nuclear_energy;
-            if c > 0.0 {
-                let vel_scale_factor = c.sqrt();
-                dbg!(vel_scale_factor, needed_delta_e);
-                eprintln!();
+            let nuclear_energy = self.state.nuclear_total_energy(&self.cfg);
+            if nuclear_energy > 0. {
+                let c = 1.0 + needed_delta_e / nuclear_energy;
+                if c > 0.0 {
+                    let vel_scale_factor = c.sqrt();
+                    //dbg!(vel_scale_factor, needed_delta_e);
+                    //eprintln!();
 
-                self.state
-                    .nuclei
-                    .iter_mut()
-                    .for_each(|nuc| nuc.vel *= vel_scale_factor);
+                    self.state
+                        .nuclei
+                        .iter_mut()
+                        .for_each(|nuc| nuc.vel *= vel_scale_factor);
+                } else {
+                    dbg!(c);
+                }
             }
-        }
 
-        let needed_delta_e = self.init_energy - self.current_total_energy();
+            let needed_delta_e = self.init_energy - self.current_total_energy();
+            dbg!(needed_delta_e);
+        }
 
         // Time step
         for nucleus in &mut self.state.nuclei {

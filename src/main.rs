@@ -115,11 +115,15 @@ impl eframe::App for TemplateApp {
             ui.strong("Time");
             ui.checkbox(&mut self.paused_nuclei, "Pause nuclei");
             ui.checkbox(&mut self.paused_electrons, "Pause electrons");
+
             ui.add(
                 DragValue::new(&mut self.sim.cfg.nuclear_dt)
                     .prefix("Nuclear dt: ")
                     .speed(1e-3),
             );
+
+            ui.checkbox(&mut self.sim.cfg.force_compensate_energy, "Force energy compensation");
+            ui.add(DragValue::new(&mut self.sim.init_energy).prefix("Initial energy").speed(1e-2));
 
             ui.separator();
             if let Some(elec_state) = self.sim.elec_state.as_ref() {
@@ -348,5 +352,6 @@ fn initial_cfg() -> SimConfig {
         num_solver_iters: 30,
         tolerance: 1e-2,
         nuclear_dt: 1.0,
+        force_compensate_energy: true,
     }
 }
