@@ -391,6 +391,7 @@ impl HamiltonianObject {
         let pot = self.potential[center_grid_coord];
 
         let h2m = -HBAR.powi(2) / 2. / ELECTRON_MASS;
+        let dx2 = DX.powi(2);
 
         for (off, coeff) in [
             ((-1, 0), 1.0 * h2m),
@@ -400,7 +401,7 @@ impl HamiltonianObject {
             ((0, 0), -4.0 * h2m + pot),
         ] {
             if let Some(grid_coord) = bounds_check(x as i32 + off.0, y as i32 + off.1, &psi) {
-                sum += coeff * psi[grid_coord];
+                sum += coeff * psi[grid_coord] / dx2;
             }
         }
 
@@ -436,11 +437,11 @@ pub fn gradient_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
     // Five-point stencil https://en.wikipedia.org/wiki/Five-point_stencil
     for (offset, coefficient) in (-2..=2).zip(&[1. / 12., -8. / 12., 0., 8. / 12., -1. / 12.]) {
         if let Some(grid_coord) = bounds_check(x as i32 + offset, y as i32, &psi) {
-            sum_x += psi[grid_coord] * coefficient;
+            sum_x += psi[grid_coord] * coefficient / DX;
         }
 
         if let Some(grid_coord) = bounds_check(x as i32, y as i32 + offset, &psi) {
-            sum_y += psi[grid_coord] * coefficient;
+            sum_y += psi[grid_coord] * coefficient / DX;
         }
     }
 
@@ -452,13 +453,14 @@ pub fn grad_cubed_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
     let mut sum_y: f32 = 0.;
 
     // Five-point stencil https://en.wikipedia.org/wiki/Five-point_stencil
+    let dx3 = DX.powi(3);
     for (offset, coefficient) in (-2..=2).zip(&[1. / 8., -8. / 12., 0., 8. / 12., -1. / 12.]) {
         if let Some(grid_coord) = bounds_check(x as i32 + offset, y as i32, &psi) {
-            sum_x += psi[grid_coord] * coefficient;
+            sum_x += psi[grid_coord] * coefficient / dx3;
         }
 
         if let Some(grid_coord) = bounds_check(x as i32, y as i32 + offset, &psi) {
-            sum_y += psi[grid_coord] * coefficient;
+            sum_y += psi[grid_coord] * coefficient / dx3;
         }
     }
 
