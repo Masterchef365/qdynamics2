@@ -4,7 +4,9 @@ use linfa_linalg::Order;
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
-use qdynamics::sim::{Nucleus, PotentialMode, Sim, SimConfig, SimElectronicState, SimState, ELEM_CHARGE};
+use qdynamics::sim::{
+    Nucleus, PotentialMode, Sim, SimConfig, SimElectronicState, SimState, ELEM_CHARGE,
+};
 use widgets::{
     display_imagedata, electric_editor, nucleus_editor, ImageViewWidget, StateViewConfig,
 };
@@ -122,13 +124,37 @@ impl eframe::App for TemplateApp {
                     .speed(1e-3),
             );
 
-            ui.checkbox(&mut self.sim.cfg.force_compensate_energy, "Force energy compensation");
+            ui.strong("Energy");
+
+            ui.label(format!(
+                "Nuclear kinetic: {}",
+                self.sim.state.nuclear_kinetic_energy()
+            ));
+            ui.label(format!(
+                "Nuclear potential: {}",
+                self.sim.state.nuclear_potential_energy(self.sim.cfg())
+            ));
+            ui.label(format!(
+                "Electric: {}",
+                self.sim.elec_state.as_ref().unwrap().energies[self.sim.state.energy_level]
+            ));
+            ui.label(format!("Total: {}", self.sim.current_total_energy()));
+
+            ui.checkbox(
+                &mut self.sim.cfg.force_compensate_energy,
+                "Force energy compensation",
+            );
             ui.horizontal(|ui| {
-                ui.add(DragValue::new(&mut self.sim.init_energy).prefix("Initial energy: ").speed(1e-2));
+                ui.add(
+                    DragValue::new(&mut self.sim.init_energy)
+                        .prefix("Initial energy: ")
+                        .speed(1e-2),
+                );
                 if ui.button("Reset").clicked() {
                     self.sim.reset_init_energy();
                 }
             });
+            ui.separator();
 
             ui.separator();
             if let Some(elec_state) = self.sim.elec_state.as_ref() {
@@ -141,10 +167,7 @@ impl eframe::App for TemplateApp {
                             .clamp_range(0..=energies.len() - 1),
                     )
                     .changed();
-                ui.label(format!(
-                    "Energy: {}",
-                    energies[self.sim.state.energy_level]
-                ));
+                ui.label(format!("Energy: {}", energies[self.sim.state.energy_level]));
                 needs_update |= ui
                     .checkbox(&mut self.view_cfg.show_probability, "Show probability")
                     .changed();
@@ -333,13 +356,13 @@ fn initial_state(cfg: &SimConfig) -> SimState {
             .collect(),
         nuclei: vec![
             Nucleus {
-                pos: Vec2::new(2.*cfg.grid_width as f32 / 3., cfg.grid_width as f32 / 3.),
+                pos: Vec2::new(2. * cfg.grid_width as f32 / 3., cfg.grid_width as f32 / 3.),
                 vel: Vec2::ZERO,
             },
             Nucleus {
-                pos: Vec2::new(cfg.grid_width as f32 / 3., 2.*cfg.grid_width as f32 / 3.),
+                pos: Vec2::new(cfg.grid_width as f32 / 3., 2. * cfg.grid_width as f32 / 3.),
                 vel: Vec2::ZERO,
-            }
+            },
         ],
     }
 }

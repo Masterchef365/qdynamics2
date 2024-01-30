@@ -119,7 +119,7 @@ impl Sim {
         self.init_energy = self.current_total_energy();
     }
 
-    fn current_total_energy(&self) -> f32 {
+    pub fn current_total_energy(&self) -> f32 {
         self.state.nuclear_total_energy(&self.cfg)
             + self.elec_state.as_ref().unwrap().energies[self.state.energy_level]
     }
