@@ -4,7 +4,7 @@ use linfa_linalg::Order;
 //#![warn(clippy::all, rust_2018_idioms)]
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 //
-use qdynamics::sim::{Nucleus, PotentialMode, Sim, SimConfig, SimElectronicState, SimState};
+use qdynamics::sim::{Nucleus, PotentialMode, Sim, SimConfig, SimElectronicState, SimState, ELEM_CHARGE};
 use widgets::{
     display_imagedata, electric_editor, nucleus_editor, ImageViewWidget, StateViewConfig,
 };
@@ -344,7 +344,7 @@ fn initial_cfg() -> SimConfig {
         potental_mode: PotentialMode::DeltaAntialias,
         dx: 1.0,
         grid_width: N,
-        v0: -0.4,
+        v0: -ELEM_CHARGE,
         v_soft: 0.1,
         v_scale: 1.,
         n_states: 10,

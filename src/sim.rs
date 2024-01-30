@@ -6,9 +6,16 @@ use ndarray::{Array1, Array2};
 use ndarray_rand::{rand_distr::Uniform, RandomExt};
 
 // TODO: Set these parameters ...
-pub const NUCLEAR_MASS: f32 = 136.2; // μ = Mp/Me
+/// Mass of the electron
 pub const ELECTRON_MASS: f32 = 1.0;
+/// Reduced planck constant
 pub const HBAR: f32 = 1.0;
+/// Elementary charge
+pub const ELEM_CHARGE: f32 = 1.0;
+/// Permittivity (of free space)
+pub const PERMITTIVITY: f32 = 1.0;
+/// Mass of the nucleus
+pub const PROTON_MASS: f32 = 1836.2 * ELECTRON_MASS; // μ = Mp/Me
 
 pub type Grid2D<T> = Array2<T>;
 
@@ -147,7 +154,7 @@ impl Sim {
             {
                 let force = calculate_electric_force(&art, energy_level, nucleus.pos);
 
-                nucleus.vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
+                nucleus.vel += force * self.cfg.nuclear_dt / PROTON_MASS;
             } else {
                 if nucleus.pos.x < 0.0 || nucleus.pos.x + 1.0 > psi.ncols() as f32 {
                     nucleus.vel.x *= -1.0;
@@ -162,8 +169,8 @@ impl Sim {
         // Accumulate nuclear -> nuclear forces
         for i in 0..self.state.nuclei.len() {
             let force = calculate_classical_force(i, &self.state, &self.cfg) * self.cfg.nuclear_dt
-                / NUCLEAR_MASS;
-            self.state.nuclei[i].vel += force * self.cfg.nuclear_dt / NUCLEAR_MASS;
+                / PROTON_MASS;
+            self.state.nuclei[i].vel += force * self.cfg.nuclear_dt / PROTON_MASS;
         }
 
         let needed_delta_e = self.init_energy - self.current_total_energy();
@@ -177,8 +184,7 @@ impl Sim {
             let c = 1.0 + needed_delta_e / nuclear_energy;
             if c > 0.0 {
                 let vel_scale_factor = c.sqrt();
-                dbg!(vel_scale_factor);
-
+                dbg!(vel_scale_factor, needed_delta_e);
                 eprintln!();
 
                 self.state
@@ -541,7 +547,7 @@ impl SimState {
     pub fn nuclear_kinetic_energy(&self) -> f32 {
         self.nuclei
             .iter()
-            .map(|nuc| NUCLEAR_MASS * nuc.vel.length_squared() / 2.)
+            .map(|nuc| PROTON_MASS * nuc.vel.length_squared() / 2.)
             .sum()
     }
 
