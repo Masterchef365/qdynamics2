@@ -19,7 +19,9 @@ pub const PROTON_MASS: f32 = 1836.2 * ELECTRON_MASS; // μ = Mp/Me
 pub const BORH_RADIUS: f32 =
     PERMITTIVITY * (HBAR * HBAR) / ELECTRON_MASS / (ELEM_CHARGE * ELEM_CHARGE);
 /// Spacing between adjacent points on the grid
-pub const DX: f32 = 1./2.;
+/// Or in other words: each grid square has this width
+/// In other other words, multiplying by this converts a grid length into a world length
+pub const DX: f32 = 1./8.;
 
 pub type Grid2D<T> = Array2<T>;
 
@@ -216,7 +218,10 @@ pub fn calculate_classical_force(idx: usize, state: &SimState, cfg: &SimConfig) 
         }
 
         let diff = state.nuclei[idx].pos - state.nuclei[j].pos;
-        let force = cfg.v0.powi(2) * diff.normalize() / (diff.length_squared() * PERMITTIVITY);
+        
+        let r2 = diff.length_squared() * DX.powi(2);
+
+        let force = cfg.v0.powi(2) / (r2 * PERMITTIVITY) * diff.normalize();
         total_force += force;
     }
 
