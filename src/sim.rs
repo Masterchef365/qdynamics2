@@ -141,8 +141,14 @@ impl Sim {
         &self.cfg
     }
 
-    pub fn step(&mut self) {
-        self.recalculate_elec_state();
+    pub fn step(&mut self, pause_nuclei: bool, pause_electrons: bool) {
+        if !pause_electrons {
+            self.recalculate_elec_state();
+        }
+
+        if pause_nuclei {
+            return;
+        }
 
         // Accumulate electric -> nuclear forces
         let art = self.elec_state.as_ref().unwrap();
@@ -178,13 +184,9 @@ impl Sim {
         }
 
         let needed_delta_e = self.init_energy - self.current_total_energy();
-        //dbg!(needed_delta_e);
-        //dbg!(self.state.nuclear_total_energy(&self.cfg));
 
-        // Work done on the electric system
         let nuclear_energy = self.state.nuclear_total_energy(&self.cfg);
         if nuclear_energy > 0. {
-            //dbg!(elec_delta_e, nuclear_energy);
             let c = 1.0 + needed_delta_e / nuclear_energy;
             if c > 0.0 {
                 let vel_scale_factor = c.sqrt();
@@ -199,7 +201,6 @@ impl Sim {
         }
 
         let needed_delta_e = self.init_energy - self.current_total_energy();
-        dbg!(needed_delta_e);
 
         // Time step
         for nucleus in &mut self.state.nuclei {

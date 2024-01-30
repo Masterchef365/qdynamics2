@@ -100,9 +100,7 @@ impl eframe::App for TemplateApp {
 
         let mut needs_update = false;
         let mut needs_reset = false;
-        if !self.paused_nuclei {
-            self.sim.step();
-        }
+        self.sim.step(self.paused_nuclei, self.paused_electrons);
 
         /*
         if self.max_states_is_grid_width {
