@@ -466,6 +466,33 @@ pub fn gradient_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
     Vec2::new(sum_x, sum_y)
 }
 
+pub fn grad_cubed_larger_kernel_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
+    let mut sum_x: f32 = 0.;
+    let mut sum_y: f32 = 0.;
+
+    // Five-point stencil https://en.wikipedia.org/wiki/Five-point_stencil
+    let dx3 = DX.powi(3);
+    for (offset_pat, coefficient) in (-2..=2).zip(&[1. / 8., -8. / 12., 0., 8. / 12., -1. / 12.]) {
+        for offset_nopat in -2..=2 {
+            if let Some(grid_coord) =
+                bounds_check(x as i32 + offset_pat, y as i32 + offset_nopat, &psi)
+            {
+                sum_x += psi[grid_coord] * coefficient / dx3 / 5.;
+            }
+
+            if let Some(grid_coord) =
+                bounds_check(x as i32 + offset_nopat, y as i32 + offset_pat, &psi)
+            {
+                sum_y += psi[grid_coord] * coefficient / dx3 / 5.;
+            }
+        }
+    }
+
+    Vec2::new(sum_x, sum_y)
+}
+
+
+
 pub fn grad_cubed_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
     let mut sum_x: f32 = 0.;
     let mut sum_y: f32 = 0.;
@@ -488,7 +515,9 @@ pub fn grad_cubed_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
 pub fn compute_force_at(art: &SimElectronicState, energy_level: usize, x: usize, y: usize) -> Vec2 {
     let psi = &art.eigenstates[energy_level];
 
-    -psi[(x, y)] * (-HBAR / 2. * ELECTRON_MASS) * grad_cubed_at(x, y, psi)
+    //-psi[(x, y)] * (-HBAR / 2. * ELECTRON_MASS) * grad_cubed_at(x, y, psi)
+
+    -psi[(x, y)] * (-HBAR / 2. * ELECTRON_MASS) * grad_cubed_larger_kernel_at(x, y, psi)
 }
 
 /*
