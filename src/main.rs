@@ -180,6 +180,9 @@ impl eframe::App for TemplateApp {
                         .selectable_value(&mut self.view_cfg.grid_display, GridDisplay::Potential, "Potential")
                         .changed();
                 });
+                needs_update |= ui
+                    .checkbox(&mut self.view_cfg.show_force_field, "Show force field")
+                    .changed();
 
                 ui.horizontal(|ui| {
                     needs_reset |= ui
