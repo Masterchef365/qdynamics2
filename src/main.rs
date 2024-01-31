@@ -383,7 +383,7 @@ fn initial_cfg() -> SimConfig {
         potental_mode: PotentialMode::DeltaAntialias,
         grid_width: N,
         v0: -ELEM_CHARGE,
-        v_soft: 0.1,
+        v_soft: 1.,
         v_scale: 1.,
         n_states: 10,
         num_solver_iters: 30,

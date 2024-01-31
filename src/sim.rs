@@ -21,7 +21,7 @@ pub const BORH_RADIUS: f32 =
 /// Spacing between adjacent points on the grid
 /// Or in other words: each grid square has this width
 /// In other other words, multiplying by this converts a grid length into a world length
-pub const DX: f32 = 1./8.;
+pub const DX: f32 = 1.;
 
 pub type Grid2D<T> = Array2<T>;
 
@@ -333,7 +333,12 @@ fn calculate_potential_r_squared(cfg: &SimConfig, state: &SimState) -> Grid2D<f3
     let mut potential = Grid2D::zeros((cfg.grid_width, cfg.grid_width));
 
     for nucleus in &state.nuclei {
-        interp_write(&mut potential, nucleus.pos.x, nucleus.pos.y, cfg.v0);
+        for x in 0..cfg.grid_width {
+            for y in 0..cfg.grid_width {
+                let grid_pos = Vec2::new(x as f32, y as f32) * DX;
+                potential[(x, y)] = scalar_potential(grid_pos, nucleus.pos, cfg);
+            }
+        }
     }
 
     potential
@@ -628,10 +633,7 @@ impl SimState {
             for j in 0..i {
                 let a = &self.nuclei[i];
                 let b = &self.nuclei[j];
-                let diff = a.pos - b.pos;
-                // Assume K = 1
-                let r = diff.length() * DX;
-                sum += -cfg.v0 / (r * PERMITTIVITY);
+                sum -= scalar_potential(a.pos, b.pos, cfg);
             }
         }
 
@@ -641,4 +643,11 @@ impl SimState {
     pub fn nuclear_total_energy(&self, cfg: &SimConfig) -> f32 {
         self.nuclear_kinetic_energy() + self.nuclear_potential_energy(cfg)
     }
+}
+
+fn scalar_potential(a: Vec2, b: Vec2, cfg: &SimConfig) -> f32 {
+    let diff = a - b;
+    // Assume K = 1
+    let r = diff.length() * DX;
+    cfg.v0 / (r * PERMITTIVITY + cfg.v_soft)
 }
