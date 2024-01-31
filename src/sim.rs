@@ -448,6 +448,7 @@ impl HamiltonianObject {
     }
 }
 
+/*
 pub fn gradient_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
     let mut sum_x: f32 = 0.;
     let mut sum_y: f32 = 0.;
@@ -465,6 +466,7 @@ pub fn gradient_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
 
     Vec2::new(sum_x, sum_y)
 }
+*/
 
 pub fn grad_cubed_larger_kernel_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
     let mut sum_x: f32 = 0.;
@@ -472,7 +474,7 @@ pub fn grad_cubed_larger_kernel_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec
 
     // Five-point stencil https://en.wikipedia.org/wiki/Five-point_stencil
     let dx3 = DX.powi(3);
-    for (offset_pat, coefficient) in (-2..=2).zip(&[1. / 8., -8. / 12., 0., 8. / 12., -1. / 12.]) {
+    for (offset_pat, coefficient) in (-2..=2).zip(&[1. / 12., -8. / 12., 0., 8. / 12., -1. / 12.]) {
         for offset_nopat in -2..=2 {
             if let Some(grid_coord) =
                 bounds_check(x as i32 + offset_pat, y as i32 + offset_nopat, &psi)
@@ -499,7 +501,7 @@ pub fn grad_cubed_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
 
     // Five-point stencil https://en.wikipedia.org/wiki/Five-point_stencil
     let dx3 = DX.powi(3);
-    for (offset, coefficient) in (-2..=2).zip(&[1. / 8., -8. / 12., 0., 8. / 12., -1. / 12.]) {
+    for (offset, coefficient) in (-2..=2).zip(&[1. / 12., -8. / 12., 0., 8. / 12., -1. / 12.]) {
         if let Some(grid_coord) = bounds_check(x as i32 + offset, y as i32, &psi) {
             sum_x += psi[grid_coord] * coefficient / dx3;
         }
