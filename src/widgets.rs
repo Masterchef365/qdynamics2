@@ -12,17 +12,24 @@ use qdynamics::sim::{
     SimElectronicState, SimState,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GridDisplay {
+    Potential,
+    Probability,
+    Wavefunction,
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct StateViewConfig {
-    pub show_probability: bool,
+    pub grid_display: GridDisplay,
     pub show_force_field: bool,
 }
 
 impl Default for StateViewConfig {
     fn default() -> Self {
         Self {
-            show_probability: true,
             show_force_field: false,
+            grid_display: GridDisplay::Probability,
         }
     }
 }
@@ -161,7 +168,8 @@ impl ImageViewWidget {
                                 //let force = force.normalize_or_zero();
                                 paint.arrow(
                                     sim_coord_to_egui_coord(glam::Vec2::new(x as f32, y as f32)),
-                                    egui::Vec2::new(force.x, force.y).normalized() * (force.length() * display_mult).min(20.),
+                                    egui::Vec2::new(force.x, force.y).normalized()
+                                        * (force.length() * display_mult).min(20.),
                                     Stroke::new(2.0, Color32::DARK_GREEN),
                                 );
                             }
@@ -291,26 +299,43 @@ pub fn electric_editor(
     needs_update
 }
 
-pub fn display_imagedata(view: &StateViewConfig, state: &SimState, artefacts: &SimElectronicState) -> ImageData {
+fn sgncolor(v: f32) -> [f32; 4] {
+    if v > 0. {
+        [v, 0.3 * v, 0.0, 0.0]
+    } else {
+        [0.0, 0.3 * -v, -v, 0.0]
+    }
+}
+
+pub fn display_imagedata(
+    view: &StateViewConfig,
+    state: &SimState,
+    artefacts: &SimElectronicState,
+) -> ImageData {
     let eigstate = &artefacts.eigenstates[state.energy_level];
 
     let image;
-    if view.show_probability {
-        let sum: f32 = eigstate.iter().map(|v| v.powi(2)).sum();
-        image = eigstate.map(|v| {
-            let v = (v.powi(2) / sum) as f32;
-            let v = 100.0 * v;
-            [v, v, v, 0.0]
-        });
-    } else {
-        image = eigstate.map(|v| {
-            let v = *v as f32 * (artefacts.ham.potential.ncols() as f32).sqrt();
-            if v > 0. {
-                [v, 0.3 * v, 0.0, 0.0]
-            } else {
-                [0.0, 0.3 * -v, -v, 0.0]
-            }
-        });
+    match view.grid_display {
+        GridDisplay::Potential => {
+            image = artefacts.ham.potential.map(|v| {
+                let v = *v as f32 * (artefacts.ham.potential.ncols() as f32).sqrt();
+                sgncolor(v)
+            });
+        }
+        GridDisplay::Probability => {
+            let sum: f32 = eigstate.iter().map(|v| v.powi(2)).sum();
+            image = eigstate.map(|v| {
+                let v = (v.powi(2) / sum) as f32;
+                let v = 100.0 * v;
+                [v, v, v, 0.0]
+            });
+        }
+        GridDisplay::Wavefunction => {
+            image = eigstate.map(|v| {
+                let v = *v as f32 * (artefacts.ham.potential.ncols() as f32).sqrt();
+                sgncolor(v)
+            });
+        }
     }
     array_to_imagedata(&image)
 }

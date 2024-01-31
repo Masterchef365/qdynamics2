@@ -8,7 +8,7 @@ use qdynamics::sim::{
     Nucleus, PotentialMode, Sim, SimConfig, SimElectronicState, SimState, ELEM_CHARGE,
 };
 use widgets::{
-    display_imagedata, electric_editor, nucleus_editor, ImageViewWidget, StateViewConfig,
+    display_imagedata, electric_editor, nucleus_editor, ImageViewWidget, StateViewConfig, GridDisplay,
 };
 
 // When compiling natively:
@@ -168,12 +168,18 @@ impl eframe::App for TemplateApp {
                     )
                     .changed();
                 ui.label(format!("Energy: {}", energies[self.sim.state.energy_level]));
-                needs_update |= ui
-                    .checkbox(&mut self.view_cfg.show_probability, "Show probability")
-                    .changed();
-                needs_update |= ui
-                    .checkbox(&mut self.view_cfg.show_force_field, "Show force field")
-                    .changed();
+
+                ui.horizontal(|ui| {
+                    needs_update |= ui
+                        .selectable_value(&mut self.view_cfg.grid_display, GridDisplay::Probability, "Probability")
+                        .changed();
+                    needs_update |= ui
+                        .selectable_value(&mut self.view_cfg.grid_display, GridDisplay::Wavefunction, "Wavefunction")
+                        .changed();
+                    needs_update |= ui
+                        .selectable_value(&mut self.view_cfg.grid_display, GridDisplay::Potential, "Potential")
+                        .changed();
+                });
 
                 ui.horizontal(|ui| {
                     needs_reset |= ui
