@@ -389,6 +389,6 @@ fn initial_cfg() -> SimConfig {
         num_solver_iters: 30,
         tolerance: 1e-2,
         nuclear_dt: 1.0,
-        force_compensate_energy: true,
+        force_compensate_energy: false,
     }
 }
