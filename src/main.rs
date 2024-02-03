@@ -74,7 +74,7 @@ impl Default for TemplateApp {
         let img = ImageViewWidget::default();
 
         Self {
-            paused_electrons: false,
+            paused_electrons: true,
             paused_nuclei: true,
             sim,
             img,

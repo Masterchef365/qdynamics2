@@ -345,6 +345,14 @@ fn calculate_potential_r_squared(cfg: &SimConfig, state: &SimState) -> Grid2D<f3
 }
 
 /// Returns false if out of bounds with the given width
+fn bounds_wrap<T>(pt_x: i32, pt_y: i32, arr: &Array2<T>) -> Option<(usize, usize)> {
+    Some((
+        (pt_x.rem_euclid(arr.shape()[0] as i32 - 1)) as usize,
+        (pt_y.rem_euclid(arr.shape()[1] as i32 - 1)) as usize,
+    ))
+}
+
+/// Returns false if out of bounds with the given width
 fn bounds_check<T>(pt_x: i32, pt_y: i32, arr: &Array2<T>) -> Option<(usize, usize)> {
     (pt_x >= 0 && pt_y >= 0 && pt_x < arr.ncols() as i32 && pt_y < arr.nrows() as i32)
         .then(|| (pt_x as usize, pt_y as usize))
@@ -423,7 +431,7 @@ impl HamiltonianObject {
             ((0, -1), 1.0 * h2m),
             ((0, 0), -4.0 * h2m + pot),
         ] {
-            if let Some(grid_coord) = bounds_check(x as i32 + off.0, y as i32 + off.1, &psi) {
+            if let Some(grid_coord) = bounds_wrap(x as i32 + off.0, y as i32 + off.1, &psi) {
                 sum += coeff * psi[grid_coord] / dx2;
             }
         }
@@ -482,13 +490,13 @@ pub fn grad_cubed_larger_kernel_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec
     for (offset_pat, coefficient) in (-2..=2).zip(&[1. / 12., -8. / 12., 0., 8. / 12., -1. / 12.]) {
         for offset_nopat in -2..=2 {
             if let Some(grid_coord) =
-                bounds_check(x as i32 + offset_pat, y as i32 + offset_nopat, &psi)
+                bounds_wrap(x as i32 + offset_pat, y as i32 + offset_nopat, &psi)
             {
                 sum_x += psi[grid_coord] * coefficient / dx3 / 5.;
             }
 
             if let Some(grid_coord) =
-                bounds_check(x as i32 + offset_nopat, y as i32 + offset_pat, &psi)
+                bounds_wrap(x as i32 + offset_nopat, y as i32 + offset_pat, &psi)
             {
                 sum_y += psi[grid_coord] * coefficient / dx3 / 5.;
             }
@@ -507,11 +515,11 @@ pub fn grad_cubed_at(x: usize, y: usize, psi: &Grid2D<f32>) -> Vec2 {
     // Five-point stencil https://en.wikipedia.org/wiki/Five-point_stencil
     let dx3 = DX.powi(3);
     for (offset, coefficient) in (-2..=2).zip(&[1. / 12., -8. / 12., 0., 8. / 12., -1. / 12.]) {
-        if let Some(grid_coord) = bounds_check(x as i32 + offset, y as i32, &psi) {
+        if let Some(grid_coord) = bounds_wrap(x as i32 + offset, y as i32, &psi) {
             sum_x += psi[grid_coord] * coefficient / dx3;
         }
 
-        if let Some(grid_coord) = bounds_check(x as i32, y as i32 + offset, &psi) {
+        if let Some(grid_coord) = bounds_wrap(x as i32, y as i32 + offset, &psi) {
             sum_y += psi[grid_coord] * coefficient / dx3;
         }
     }
